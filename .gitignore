@@ -10,3 +10,10 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+*.egg-info/
+.pytest_cache/
+
+.venv/
+*.egg-info/
+__pycache__/
+.pytest_cache/
