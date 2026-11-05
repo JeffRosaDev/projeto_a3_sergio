@@ -114,6 +114,8 @@ A Etapa 1 registra os nomes e as assinaturas que todos devem manter. Os métodos
 
 `QueueEvent` é imutável e descreve o ticket, tipo/instante do evento, canal, prioridade, tamanho da fila antes/depois, snapshot dos tickets ainda esperando e dados de SLA opcionais. O snapshot contém os IDs da fila após o evento e seu tamanho deve coincidir com `queue_size_after`. O módulo de serviços emite esses eventos tipados. Assim, a Etapa 5 consegue funcionar com a interface `AuditLogger` antes de a Etapa 6 implementar a gravação SQLite; a Etapa 7 conecta a implementação concreta.
 
+Os métodos de `BusinessRules` recebem valores simples: `channel` pode ser texto como `"DELIVERY"` ou `OrderChannel`; `courier_waiting` é `bool`; `complexity` pode ser texto como `"SIMPLE"` ou `OrderComplexity`. A normalização ocorre dentro das regras, sem exigir que a classe `Order` exista.
+
 ## 5. Estrutura sugerida do repositório
 
 ```text
@@ -159,9 +161,9 @@ Cada integrante é responsável pelo código e pela explicação da sua etapa. A
 
 **Responsável:** Integrante 1.
 
-**Fazer:** formalizar cenário e regras; criar a estrutura inicial; definir enums; implementar `BusinessRules`; escrever as interfaces públicas; produzir o diagrama de classes inicial e o dicionário de dados/métodos.
+**Fazer:** formalizar cenário e regras; criar a estrutura inicial; definir enums; implementar `BusinessRules`; escrever as interfaces públicas; produzir o diagrama de classes inicial e o dicionário de dados/métodos; criar testes unitários das regras e contratos básicos.
 
-**Arquivos principais:** `docs/escopo.md`, `docs/modelagem.md`, `docs/dicionario.md`, `src/fastfood/domain/enums.py`, `src/fastfood/domain/rules.py`, `src/fastfood/domain/events.py`.
+**Arquivos principais:** `docs/escopo.md`, `docs/modelagem.md`, `docs/dicionario.md`, `src/fastfood/domain/enums.py`, `src/fastfood/domain/rules.py`, `src/fastfood/domain/events.py`, `tests/test_business_rules.py` e `tests/test_queue_event.py`.
 
 As regras recebem `channel`, `courier_waiting` e `complexity` como valores simples. Assim, a Etapa 1 pode implementar `BusinessRules` sem depender da classe `Order`, que só será criada na Etapa 2.
 

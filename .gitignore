@@ -4,3 +4,9 @@
 /rendered/
 /tmp/
 /entregas/primeira_entrega/apresentacao_contexto_10-11.pptx
+
+# Arquivos gerados pelo Python e ambientes locais
+__pycache__/
+*.py[cod]
+.venv/
+venv/
