@@ -27,6 +27,15 @@ src/fastfood/domain/  Tipos, regras e eventos compartilhados
 
 O núcleo da Etapa 1 usa apenas a biblioteca padrão do Python. As dependências de interface serão definidas quando o Streamlit for integrado.
 
+## Testes do domínio
+
+No PowerShell, a partir da pasta do repositório:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -s tests -v
+```
+
 ## Fluxo colaborativo
 
 As etapas seguem a sequência descrita em [docs/planejamento.md](docs/planejamento.md). O responsável deve explicar sua contribuição, registrar commits próprios e entregar os contratos para revisão antes do início da etapa seguinte.

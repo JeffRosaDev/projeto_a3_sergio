@@ -155,9 +155,9 @@ classDiagram
 
 | Classe | Método ou atributo | Contrato |
 |---|---|---|
-| `BusinessRules` | `priority_for(channel, courier_waiting)` | Retorna `URGENT` apenas para delivery com entregador aguardando; nos demais casos retorna `STANDARD`. |
-| `BusinessRules` | `sla_seconds_for(channel)` | Retorna a meta configurada em segundos para o canal. |
-| `BusinessRules` | `preparation_seconds_for(complexity)` | Retorna a duração configurada para a complexidade. |
+| `BusinessRules` | `priority_for(channel, courier_waiting)` | Recebe canal como texto ou enum e `courier_waiting` como `bool`; retorna `URGENT` apenas para delivery com entregador aguardando. |
+| `BusinessRules` | `sla_seconds_for(channel)` | Recebe canal como texto ou enum e retorna a meta configurada em segundos. |
+| `BusinessRules` | `preparation_seconds_for(complexity)` | Recebe complexidade como texto ou enum e retorna a duração configurada. |
 | `BusinessRules` | `urgent_quota` | Retorna a quantidade máxima configurada de inícios urgentes consecutivos quando há padrão esperando. |
 | `PriorityQueue` | `enqueue(ticket)` | Coloca no final da faixa correspondente, preservando FIFO. |
 | `PriorityQueue` | `has_waiting(priority)` | Informa se há ticket aguardando na faixa. |

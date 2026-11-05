@@ -97,31 +97,54 @@ class BusinessRules:
 
     def priority_for(
         self,
-        channel: OrderChannel,
+        channel: OrderChannel | str,
         courier_waiting: bool,
     ) -> PriorityLevel:
-        """Calcula a prioridade uma única vez, no instante de entrada na fila."""
+        """Calcula a prioridade de valores simples, sem receber um objeto Order."""
 
-        if not isinstance(channel, OrderChannel):
-            raise TypeError("channel deve ser um valor de OrderChannel.")
         if not isinstance(courier_waiting, bool):
             raise TypeError("courier_waiting deve ser bool.")
+        channel_value = self._channel_value(channel)
 
         # A urgência existe somente quando um entregador de delivery já aguarda.
-        if channel is OrderChannel.DELIVERY and courier_waiting:
+        if channel_value is OrderChannel.DELIVERY and courier_waiting:
             return PriorityLevel.URGENT
         return PriorityLevel.STANDARD
 
-    def sla_seconds_for(self, channel: OrderChannel) -> int:
-        """Devolve a meta de espera, em segundos, correspondente ao canal."""
+    def sla_seconds_for(self, channel: OrderChannel | str) -> int:
+        """Devolve o SLA do canal, aceitando enum ou texto como valor simples."""
 
-        if not isinstance(channel, OrderChannel):
-            raise TypeError("channel deve ser um valor de OrderChannel.")
-        return self.sla_targets_seconds[channel]
+        return self.sla_targets_seconds[self._channel_value(channel)]
 
-    def preparation_seconds_for(self, complexity: OrderComplexity) -> int:
-        """Devolve a duração simulada do preparo para a complexidade informada."""
+    def preparation_seconds_for(self, complexity: OrderComplexity | str) -> int:
+        """Devolve o preparo da complexidade, aceitando enum ou texto simples."""
 
-        if not isinstance(complexity, OrderComplexity):
-            raise TypeError("complexity deve ser um valor de OrderComplexity.")
-        return self.preparation_times_seconds[complexity]
+        return self.preparation_times_seconds[self._complexity_value(complexity)]
+
+    @staticmethod
+    def _channel_value(channel: OrderChannel | str) -> OrderChannel:
+        """Normaliza um canal textual para o enum usado internamente."""
+
+        if isinstance(channel, OrderChannel):
+            return channel
+        if not isinstance(channel, str):
+            raise TypeError("channel deve ser texto ou OrderChannel.")
+        try:
+            # A normalização aceita valores simples como "delivery" e " DELIVERY ".
+            return OrderChannel(channel.strip().upper())
+        except ValueError as error:
+            raise ValueError(f"Canal desconhecido: {channel!r}.") from error
+
+    @staticmethod
+    def _complexity_value(complexity: OrderComplexity | str) -> OrderComplexity:
+        """Normaliza uma complexidade textual para o enum interno."""
+
+        if isinstance(complexity, OrderComplexity):
+            return complexity
+        if not isinstance(complexity, str):
+            raise TypeError("complexity deve ser texto ou OrderComplexity.")
+        try:
+            # Usar texto simples mantém as regras desacopladas da classe Order.
+            return OrderComplexity(complexity.strip().upper())
+        except ValueError as error:
+            raise ValueError(f"Complexidade desconhecida: {complexity!r}.") from error

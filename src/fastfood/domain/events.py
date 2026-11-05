@@ -63,7 +63,7 @@ class QueueEvent:
         if not isinstance(self.queue_snapshot, tuple):
             raise TypeError("queue_snapshot deve ser uma tupla de IDs.")
         if any(
-            not isinstance(ticket_id, str) or not ticket_id
+            not isinstance(ticket_id, str) or not ticket_id.strip()
             for ticket_id in self.queue_snapshot
         ):
             raise ValueError("queue_snapshot deve conter apenas IDs não vazios.")
@@ -74,6 +74,8 @@ class QueueEvent:
             self._validate_optional_seconds("wait_seconds", self.wait_seconds)
         if self.sla_target_seconds is not None:
             self._validate_optional_seconds("sla_target_seconds", self.sla_target_seconds)
+            if self.sla_target_seconds == 0:
+                raise ValueError("sla_target_seconds deve ser maior que zero.")
         if self.sla_status is not None and not isinstance(self.sla_status, SlaStatus):
             raise TypeError("sla_status deve ser SlaStatus ou None.")
 

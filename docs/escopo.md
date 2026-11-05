@@ -10,6 +10,14 @@ Uma cozinha de fast food recebe pedidos por balcão, retirada e delivery durante
 
 Pedidos de delivery podem exigir prioridade operacional quando o entregador já está aguardando. A fila não pode deixar que a prioridade urgente impeça indefinidamente o atendimento de pedidos comuns. A simulação também deve sinalizar o cumprimento ou excesso dos limites de espera definidos para cada canal e produzir dados de auditoria consistentes.
 
+## 1.1 Requisitos do projeto e hipóteses do cenário
+
+| Origem | Definição | Como explicar na apresentação |
+|---|---|---|
+| Edital do professor | Solução orientada a objetos para uma fila de prioridade; mitigar starvation; acompanhar SLAs; manter integridade dos logs. | São os objetivos obrigatórios da solução, independentemente do tema escolhido. |
+| Tema aprovado para o grupo | Simular pedidos de uma operação de fast food. | É o contexto escolhido pelo grupo e autorizado pelo professor. |
+| Hipóteses da simulação | Uma estação; delivery urgente quando o entregador aguarda; cota de três urgentes; metas de SLA; tempos de preparo; risco em 80%. | São valores controláveis para construir cenários repetíveis, não regras do edital nem dados reais do setor. |
+
 ## 2. Problemática
 
 Uma regra que sempre escolhe o pedido de maior prioridade pode deixar pedidos comuns esperando sem limite quando novos urgentes continuam chegando. Ao mesmo tempo, atender simplesmente pela ordem global de chegada ignora entregadores que já aguardam e pode aumentar atrasos operacionais. Sem timestamps e histórico de eventos, também fica difícil explicar por que um ticket foi atendido naquela ordem ou verificar se o limite de espera foi respeitado.
@@ -101,6 +109,7 @@ Não estão sendo implementados agora os objetos `Order` e `Ticket`, a estrutura
 - `BusinessRules` calcula prioridade e fornece tempos de SLA e preparo configuráveis.
 - O evento tipado registra os dados operacionais mínimos para futuras etapas de auditoria.
 - O diagrama inicial e o dicionário descrevem as classes planejadas sem afirmar que já foram implementadas.
+- Os testes unitários verificam a prioridade, a normalização de valores simples, os parâmetros e a consistência de `QueueEvent`.
 - Os sete integrantes revisam as regras antes de iniciar a Etapa 2.
 
 ## 9. Decisões que o grupo deve confirmar

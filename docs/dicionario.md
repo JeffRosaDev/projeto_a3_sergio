@@ -28,9 +28,9 @@ Configuração imutável para calcular prioridade e consultar metas de SLA e tem
 
 | Método | Entrada | Saída | Regra |
 |---|---|---|---|
-| `priority_for(channel, courier_waiting)` | `OrderChannel`, `bool` | `PriorityLevel` | Urgente se o canal for delivery e o entregador já aguardar; padrão nos outros casos. |
-| `sla_seconds_for(channel)` | `OrderChannel` | `int` | Consulta a meta definida para o canal. |
-| `preparation_seconds_for(complexity)` | `OrderComplexity` | `int` | Consulta o tempo definido para a complexidade. |
+| `priority_for(channel, courier_waiting)` | `OrderChannel \| str`, `bool` | `PriorityLevel` | Urgente se o canal for delivery e o entregador já aguardar; padrão nos outros casos. Texto é normalizado sem depender de `Order`. |
+| `sla_seconds_for(channel)` | `OrderChannel \| str` | `int` | Consulta a meta definida para o canal. |
+| `preparation_seconds_for(complexity)` | `OrderComplexity \| str` | `int` | Consulta o tempo definido para a complexidade. |
 
 A construção rejeita mapas incompletos, enumerações incorretas, tempos não inteiros ou não positivos, cota não positiva e limiar fora de `(0, 1]`.
 
