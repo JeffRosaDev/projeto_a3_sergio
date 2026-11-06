@@ -1,8 +1,9 @@
 """Parâmetros e regras puras da simulação, sem acesso a UI ou banco de dados."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Mapping, TypeVar
+from typing import TypeVar
 
 from .enums import OrderChannel, OrderComplexity, PriorityLevel
 
