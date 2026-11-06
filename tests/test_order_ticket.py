@@ -14,9 +14,9 @@ python -m unittest discover -s tests -p "test*.py" -v
 
 import unittest
 
+from fastfood.domain.enums import PriorityLevel, TicketStatus
 from fastfood.domain.order import Order
 from fastfood.domain.ticket import Ticket
-from fastfood.domain.enums import PriorityLevel, TicketStatus
 
 
 class TestOrderTicket(unittest.TestCase):

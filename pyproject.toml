@@ -3,6 +3,9 @@ name = "fastfood-priority-queue-a3"
 version = "0.1.0"
 description = "Simulador acadêmico de fila de prioridade para fast food"
 requires-python = ">=3.10"
+dependencies = [
+    "ruff>=0.17.4",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
