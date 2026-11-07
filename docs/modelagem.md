@@ -87,7 +87,8 @@ classDiagram
         +record_started(priority) None
     }
     class QuotaFairnessPolicy {
-        -int consecutive_urgent_starts
+        -int _urgent_quota
+        -int _consecutive_urgent_starts
         +choose_priority(queue) PriorityLevel or None
         +record_started(priority) None
     }
@@ -124,6 +125,7 @@ classDiagram
 
     Ticket *-- Order : contem
     QuotaFairnessPolicy --|> PriorityPolicy : implementa
+    QuotaFairnessPolicy ..> BusinessRules : lê a cota
     PriorityQueue ..> Ticket : armazena
     Dispatcher --> PriorityQueue : consulta e retira
     Dispatcher --> PriorityPolicy : escolhe faixa

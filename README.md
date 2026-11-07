@@ -4,12 +4,13 @@ Projeto académico de Algoritmos e Programação Orientada a Objetos. O nosso ob
 
 ## Estado atual
 
-O repositório acaba de concluir a **Etapa 3 — Estrutura da fila**. Até ao momento, foram implementados:
+Até a **Etapa 4 — Política de justiça**, foram implementados:
 - **Etapa 1:** Escopo, enums, regras de negócio configuráveis e contratos de domínio.
 - **Etapa 2:** Estruturação de pedidos (`Order`) e do ciclo de vida dos tickets (`Ticket`).
 - **Etapa 3:** Filas independentes em memória (`collections.deque`) garantindo ordem FIFO por nível de prioridade.
+- **Etapa 4:** Política que, por padrão, escolhe um pedido padrão após até três inícios urgentes enquanto houver pedidos padrão aguardando.
 
-A política contra starvation (Etapa 4), o motor de simulação completo (Etapa 5), a auditoria SQL (Etapa 6) e a aplicação Streamlit (Etapa 7) estão mapeados para as próximas entregas.
+O motor de simulação (Etapa 5), a auditoria SQL (Etapa 6) e a aplicação Streamlit (Etapa 7) estão mapeados para as próximas entregas.
 
 *Nota: Os prazos de SLA, tempos de preparo e a cota de atendimento são parâmetros didáticos da simulação. Eles não representam medições de restaurantes reais.*
 
@@ -29,7 +30,7 @@ docs/                 Escopo, modelagem, dicionário e planeamento
 entregas/             Materiais das entregas académicas
 src/fastfood/
   domain/             Tipos, regras, eventos, pedidos e tickets
-  queues/             Estrutura de dados das filas (PriorityQueue)
+  queues/             Faixas FIFO e política de seleção por cota
 tests/                Suíte de testes automatizados do projeto
 ```
 

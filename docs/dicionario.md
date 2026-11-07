@@ -53,15 +53,26 @@ Evento imutável e independente de SQLite/Streamlit. A fotografia da fila conté
 | `sla_target_seconds` | `int \| None` | Sim | Meta do canal em segundos; opcional em eventos que ainda não iniciaram. |
 | `sla_status` | `SlaStatus \| None` | Sim | Situação calculada, quando aplicável. |
 
-## Classes planejadas para as etapas seguintes
+## Política de justiça implementada na Etapa 4
+
+`PriorityPolicy` é a classe abstrata que define o contrato da política. `QuotaFairnessPolicy(rules=None)` implementa esse contrato usando `BusinessRules.urgent_quota`, cujo padrão é 3. Cada instância começa com o contador zerado e acompanha os inícios consecutivos de uma simulação.
+
+| Método | Entrada | Saída | Regra |
+|---|---|---|---|
+| `choose_priority(queue)` | `PriorityQueue` | `PriorityLevel \| None` | Consulta a disponibilidade das faixas em O(1) e retorna a escolha. Com a fila vazia, retorna `None`. A fila e o contador ficam intactos. |
+| `record_started(priority)` | `PriorityLevel` | `None` | Depois que um ticket começa o preparo, registra o início em O(1). Um urgente aumenta o contador até a cota e um padrão zera a contagem. |
+
+Com as duas faixas ocupadas e a cota padrão, a sequência é `URGENT → URGENT → URGENT → STANDARD`. A fila retira o mais antigo da faixa escolhida. Se só houver urgentes, o atendimento continua e o contador permanece limitado à cota. Se um padrão chegar depois de atingido esse limite, ele será escolhido na próxima decisão. A cota limita os inícios urgentes entre oportunidades da faixa padrão. O tempo de espera de um ticket também depende da duração dos preparos e dos tickets mais antigos na mesma faixa, por isso o cumprimento do SLA é medido separadamente.
+
+Na Etapa 5, o despachante deve chamar `choose_priority(queue)`, retirar o ticket com `queue.pop_oldest(priority)`, iniciar o preparo com `ticket.start_preparation(now)` e só então chamar `record_started(ticket.priority)`.
+
+## Classes das demais etapas
 
 | Classe | Responsabilidade prevista | Etapa |
 |---|---|---:|
 | `Order` | Manter ID fictício, canal, complexidade e indicação de entregador aguardando. | 2 |
 | `Ticket` | Relacionar um pedido, prioridade, sequência de chegada, estado e horários. | 2 |
 | `PriorityQueue` | Guardar tickets em duas faixas FIFO e fornecer consulta/remoção/snapshot. | 3 |
-| `PriorityPolicy` | Definir a interface de escolha de faixa e notificação de início. | 4 |
-| `QuotaFairnessPolicy` | Garantir a cota de urgentes sem retirar tickets da fila. | 4 |
 | `SlaMonitor` | Calcular espera e estado de SLA. | 5 |
 | `Dispatcher` | Selecionar o ticket, iniciar atendimento e atualizar política/SLA. | 5 |
 | `SimulationEngine` | Controlar relógio, estação, preparo e chegadas. | 5 |
