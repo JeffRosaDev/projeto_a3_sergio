@@ -1,39 +1,45 @@
-# src/fastfood/services/sla_monitor.py
+"""Monitoramento de SLA e cálculo de tempo de espera."""
 
 from fastfood.domain.enums import SlaStatus, TicketStatus
+from fastfood.domain.rules import BusinessRules
+
 
 class SlaMonitor:
-    def __init__(self, business_rules):
-        self.rules = business_rules
+    """Calcula o tempo de espera e avalia o cumprimento de SLA dos tickets."""
+
+    def __init__(self, business_rules: BusinessRules | None = None) -> None:
+        self.rules = business_rules if business_rules is not None else BusinessRules()
 
     def wait_seconds(self, ticket, now: int) -> int:
+        """Calcula a espera decorrida ou final até o início do preparo.
+
+        espera = horário_de_início_do_preparo - horário_de_entrada_na_fila
+        Se o preparo já começou, a espera congela no instante de início.
         """
-        Calcula o tempo de espera.
-        A espera é o horário de início (se já começou) ou o horário atual (now)
-        menos o horário de entrada na fila.
-        """
-        # Se o preparo já iniciou, a espera congela no start_time.
-        # Caso contrário, continua contando até o 'now' simulado.
-        end_time = ticket.start_time if ticket.start_time is not None else now
-        return end_time - ticket.arrival_time
+        start_time = getattr(ticket, "started_at", None)
+        if start_time is None:
+            start_time = getattr(ticket, "start_time", None)
+
+        enqueued_time = getattr(
+            ticket, "enqueued_at", getattr(ticket.order, "arrival_time", 0)
+        )
+
+        end_time = start_time if start_time is not None else now
+        return max(0, end_time - enqueued_time)
 
     def status(self, ticket, now: int) -> SlaStatus:
-        """
-        Classifica o cumprimento da meta de SLA.
-        """
+        """Classifica o cumprimento do SLA conforme a meta do canal e a espera."""
         wait = self.wait_seconds(ticket, now)
         limit = self.rules.sla_seconds_for(ticket.order.channel)
+        risk_limit = limit * self.rules.at_risk_fraction
 
-        # Se o pedido já saiu da fila (já começou a ser preparado ou terminou)
         if ticket.status in (TicketStatus.PREPARING, TicketStatus.COMPLETED):
             return SlaStatus.MET if wait <= limit else SlaStatus.BREACHED
 
-        # Se o pedido ainda está esperando na fila
         if wait > limit:
             return SlaStatus.BREACHED
-        
-        # Fica EM_RISCO quando consome 80% ou mais do tempo limite estipulado
-        if wait >= limit * 0.8:
+
+        if wait >= risk_limit:
             return SlaStatus.AT_RISK
-            
+
         return SlaStatus.WAITING
