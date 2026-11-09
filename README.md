@@ -4,13 +4,15 @@ Projeto académico de Algoritmos e Programação Orientada a Objetos. O nosso ob
 
 ## Estado atual
 
-Até a **Etapa 4 — Política de justiça**, foram implementados:
+Até a **Etapa 6 — Auditoria SQL**, foram implementados:
 - **Etapa 1:** Escopo, enums, regras de negócio configuráveis e contratos de domínio.
 - **Etapa 2:** Estruturação de pedidos (`Order`) e do ciclo de vida dos tickets (`Ticket`).
 - **Etapa 3:** Filas independentes em memória (`collections.deque`) garantindo ordem FIFO por nível de prioridade.
-- **Etapa 4:** Política que, por padrão, escolhe um pedido padrão após até três inícios urgentes enquanto houver pedidos padrão aguardando.
+- **Etapa 4:** Política de justiça (`QuotaFairnessPolicy`) com cota rotativa contra starvation.
+- **Etapa 5:** Serviços de monitoramento de SLA (`SlaMonitor`), despacho (`Dispatcher`) e motor de simulação discreta (`SimulationEngine`).
+- **Etapa 6:** Auditoria SQL append-only com SQLite (`AuditLogger`), serialização JSON de snapshots da fila, esquema relacional (`sql/schema.sql`) e exportação executável (`exports/logs.sql`).
 
-O motor de simulação (Etapa 5), a auditoria SQL (Etapa 6) e a aplicação Streamlit (Etapa 7) estão mapeados para as próximas entregas.
+A aplicação interativa Streamlit (Etapa 7) está mapeada para a entrega final.
 
 *Nota: Os prazos de SLA, tempos de preparo e a cota de atendimento são parâmetros didáticos da simulação. Eles não representam medições de restaurantes reais.*
 
@@ -28,9 +30,13 @@ O motor de simulação (Etapa 5), a auditoria SQL (Etapa 6) e a aplicação Stre
 ```text
 docs/                 Escopo, modelagem, dicionário e planeamento
 entregas/             Materiais das entregas académicas
+exports/              Exportações de histórico SQL executável (logs.sql)
+sql/                  Esquema de criação do banco de dados (schema.sql)
 src/fastfood/
+  audit/              Registrador SQLite append-only (AuditLogger)
   domain/             Tipos, regras, eventos, pedidos e tickets
   queues/             Faixas FIFO e política de seleção por cota
+  services/           Monitoramento de SLA, despacho e simulação
 tests/                Suíte de testes automatizados do projeto
 ```
 

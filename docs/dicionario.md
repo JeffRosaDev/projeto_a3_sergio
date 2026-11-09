@@ -66,6 +66,21 @@ Com as duas faixas ocupadas e a cota padrão, a sequência é `URGENT → URGENT
 
 Na Etapa 5, o despachante deve chamar `choose_priority(queue)`, retirar o ticket com `queue.pop_oldest(priority)`, iniciar o preparo com `ticket.start_preparation(now)` e só então chamar `record_started(ticket.priority)`.
 
+## Auditoria SQL implementada na Etapa 6
+
+### `AuditLogger`
+
+Implementa a persistência de auditoria em banco de dados SQLite com política estritamente *append-only* (sem operações de `UPDATE` ou `DELETE`). Cada evento é gravado de maneira atômica em uma transação única. Permite exportar o histórico integral em arquivo SQL executável com comandos `INSERT`.
+
+| Método | Entrada | Saída | Regra |
+|---|---|---|---|
+| `__init__(db_path, schema_path)` | `str \| Path`, `str \| Path \| None` | `AuditLogger` | Conecta ao SQLite (padrão `:memory:`) e inicializa a tabela `queue_events` via `schema.sql`. |
+| `record(event)` | `QueueEvent` | `None` | Grava o evento na tabela `queue_events` em uma transação atômica. Serializa `queue_snapshot` como JSON. |
+| `export_sql(output_path)` | `str \| Path \| None` | `str` | Gera comandos `INSERT` executáveis com cabeçalho e transação `BEGIN`/`COMMIT`. Grava em arquivo se caminho fornecido. |
+| `fetch_all()` | Nenhum | `list[dict]` | Retorna todos os eventos em ordem cronológica com snapshot desserializado. |
+| `count()` | Nenhum | `int` | Retorna a quantidade total de eventos persistidos. |
+| `close()` | Nenhum | `None` | Encerra a conexão com o banco SQLite. |
+
 ## Classes das demais etapas
 
 | Classe | Responsabilidade prevista | Etapa |
@@ -76,7 +91,6 @@ Na Etapa 5, o despachante deve chamar `choose_priority(queue)`, retirar o ticket
 | `SlaMonitor` | Calcular espera e estado de SLA. | 5 |
 | `Dispatcher` | Selecionar o ticket, iniciar atendimento e atualizar política/SLA. | 5 |
 | `SimulationEngine` | Controlar relógio, estação, preparo e chegadas. | 5 |
-| `AuditLogger` | Persistir eventos em SQLite e exportar SQL executável. | 6 |
 | Interface Streamlit | Inserir pedidos de simulação e exibir fila, serviço, espera, SLA e histórico. | 7 |
 
 ## Convenções compartilhadas
