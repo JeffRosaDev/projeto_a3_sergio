@@ -7,7 +7,6 @@ from fastfood.domain.enums import (
     OrderChannel,
     OrderComplexity,
     PriorityLevel,
-    QueueEventType,
     SlaStatus,
     TicketStatus,
 )

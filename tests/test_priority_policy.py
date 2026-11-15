@@ -67,7 +67,9 @@ class QuotaFairnessPolicyTests(unittest.TestCase):
         self.assertEqual(self.queue.snapshot(), urgent[3:])
         self.assertIs(standard.status, TicketStatus.PREPARING)
 
-    def test_urgent_lane_keeps_moving_and_a_late_standard_is_selected_next(self) -> None:
+    def test_urgent_lane_keeps_moving_and_a_late_standard_is_selected_next(
+        self,
+    ) -> None:
         urgent = [self.enqueue(urgent=True) for _ in range(7)]
         for index in range(6):
             self.assertIs(self.start_next(index * 60), urgent[index])

@@ -73,7 +73,9 @@ class QueueEvent:
         if self.wait_seconds is not None:
             self._validate_optional_seconds("wait_seconds", self.wait_seconds)
         if self.sla_target_seconds is not None:
-            self._validate_optional_seconds("sla_target_seconds", self.sla_target_seconds)
+            self._validate_optional_seconds(
+                "sla_target_seconds", self.sla_target_seconds
+            )
             if self.sla_target_seconds == 0:
                 raise ValueError("sla_target_seconds deve ser maior que zero.")
         if self.sla_status is not None and not isinstance(self.sla_status, SlaStatus):

@@ -65,12 +65,17 @@ class BusinessRules:
             OrderComplexity.COMPLEX: 180,
         }
     )
+    prioritize_delivery: bool = (
+        True  # Vale para novos pedidos; os existentes preservam prioridade.
+    )
     urgent_quota: int = 3
     at_risk_fraction: float = 0.8
 
     def __post_init__(self) -> None:
         """Valida a configuração e congela os mapas internos da instância."""
 
+        if not isinstance(self.prioritize_delivery, bool):
+            raise TypeError("prioritize_delivery deve ser bool.")
         sla_targets = _validated_map(
             self.sla_targets_seconds,
             set(OrderChannel),
@@ -84,7 +89,9 @@ class BusinessRules:
         object.__setattr__(self, "sla_targets_seconds", sla_targets)
         object.__setattr__(self, "preparation_times_seconds", preparation_times)
 
-        if isinstance(self.urgent_quota, bool) or not isinstance(self.urgent_quota, int):
+        if isinstance(self.urgent_quota, bool) or not isinstance(
+            self.urgent_quota, int
+        ):
             raise TypeError("urgent_quota deve ser um inteiro.")
         if self.urgent_quota <= 0:
             raise ValueError("urgent_quota deve ser maior que zero.")
@@ -108,7 +115,11 @@ class BusinessRules:
         channel_value = self._channel_value(channel)
 
         # A urgência existe somente quando um entregador de delivery já aguarda.
-        if channel_value is OrderChannel.DELIVERY and courier_waiting:
+        if (
+            self.prioritize_delivery
+            and channel_value is OrderChannel.DELIVERY
+            and courier_waiting
+        ):
             return PriorityLevel.URGENT
         return PriorityLevel.STANDARD
 
@@ -149,3 +160,13 @@ class BusinessRules:
             return OrderComplexity(complexity.strip().upper())
         except ValueError as error:
             raise ValueError(f"Complexidade desconhecida: {complexity!r}.") from error
+
+    def as_dict(self) -> dict:
+        """Representação JSON da configuração, usada na trilha de alterações."""
+        return {
+            "sla": {k.value: v for k, v in self.sla_targets_seconds.items()},
+            "preparo": {k.value: v for k, v in self.preparation_times_seconds.items()},
+            "cota": self.urgent_quota,
+            "risco": self.at_risk_fraction,
+            "delivery_urgente": self.prioritize_delivery,
+        }
