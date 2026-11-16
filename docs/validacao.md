@@ -26,4 +26,6 @@ Executada em 15–16/11/2026, Windows, Python 3.13 e Streamlit 1.67.0. Os comand
 
 ## Limitações conhecidas
 
+Revisão da interface e auditoria em 16/11: 73 testes locais aprovados, incluindo acumulação do relógio entre redraws frequentes, retomada após pausa, limite de recuperação, rollback de chegadas automáticas e trilha global de eventos/comandos. O script opcional `scripts/check_browser.py` verifica reprodução, foco e rascunho de formulário durante atualização, pausas, incidentes, duplicidade, download/importação SQL e sessão mobile isolada.
+
 O teste visual não representa todos os navegadores/dispositivos. A reprodução automática depende da aba aberta e não pretende medir tempo real com precisão. SQL preserva o histórico, não retoma o motor. O limite de 2000 é de pedidos simultâneos aguardando; sessões prolongadas acumulam eventos e podem consumir memória/disco. Bancos locais devem ser geridos pelo responsável. A avaliação de SLA não é certificação de garantia comercial.

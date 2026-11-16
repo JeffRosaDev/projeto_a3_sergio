@@ -128,6 +128,24 @@ class AuditLogger:
                 "SELECT COUNT(*) FROM queue_events"
             ).fetchone()[0]
 
+    def timeline(self) -> list[dict]:
+        """Reúne eventos e intervenções pela ordem global, sem inferir autoria pessoal."""
+        with self._lock:
+            rows = self._connection.execute("""
+                SELECT s.sequence, s.entry_kind, s.entry_id,
+                       COALESCE(e.simulated_second,a.simulated_second) AS simulated_second,
+                       COALESCE(e.recorded_at,a.recorded_at) AS recorded_at,
+                       COALESCE(e.event_type,a.action) AS operation,
+                       e.ticket_id, e.queue_size_before, e.queue_size_after,
+                       e.queue_snapshot, e.wait_seconds, e.sla_target_seconds,
+                       e.sla_status, a.details
+                FROM audit_sequence s
+                LEFT JOIN queue_events e ON s.entry_kind='event' AND s.entry_id=e.event_id
+                LEFT JOIN simulation_actions a ON s.entry_kind='action' AND s.entry_id=a.action_id
+                ORDER BY s.sequence
+            """).fetchall()
+            return [dict(row) for row in rows]
+
     def export_sql(self, output_path=None) -> str:
         """Exporta schema e dados em ordem global, preservando recorded_at e a sequência."""
         with self._lock:

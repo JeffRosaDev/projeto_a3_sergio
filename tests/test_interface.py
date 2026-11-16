@@ -67,9 +67,54 @@ class InterfaceTests(unittest.TestCase):
         self.assertEqual(len(self.app.session_state.engine.tickets), 0)
         # Uma falha automática precisa parar a reprodução e continuar visível após rerun.
         engine = self.app.session_state.engine
-        self.app.session_state.last_tick = 0
-        with patch.object(engine, "advance", side_effect=ValueError("Falha simulada")):
-            self.app.toggle(key="auto").set_value(True).run()
+        with (
+            patch.object(engine, "advance", side_effect=ValueError("Falha simulada")),
+            patch("fastfood.services.playback.PlaybackClock.consume", return_value=5),
+        ):
+            self.app.button(key="play").click().run()
         self.assertFalse(self.app.exception)
         self.assertFalse(self.app.session_state.auto)
         self.assertTrue(any("Falha simulada" in e.value for e in self.app.error))
+
+    def test_start_pause_and_draft_preserved(self):
+        """O controle principal inicia/pausa; um erro de pedido não apaga seu ID."""
+        self.app.button(key="burst").click().run()
+        with patch("fastfood.services.playback.PlaybackClock.consume", return_value=5):
+            self.app.button(key="play").click().run()
+        self.assertTrue(self.app.session_state.auto)
+        self.assertTrue(self.app.button(key="step1").disabled)
+        self.assertEqual(self.app.session_state.engine.current_time, 5)
+        self.app.button(key="play").click().run()
+        self.app.run()
+        self.assertFalse(self.app.session_state.auto)
+        self.assertEqual(self.app.session_state.engine.current_time, 5)
+        self.app.text_input(key="order_id").set_value("PED-0001")
+        self.button("Adicionar à fila").click().run()
+        self.assertTrue(self.app.error)
+        self.assertEqual(self.app.text_input(key="order_id").value, "PED-0001")
+
+    def test_hidden_history_does_not_export_on_each_operation_update(self):
+        """O painel automático não deve regenerar o SQL de uma aba escondida."""
+        logger = self.app.session_state.engine.audit_logger
+        with patch.object(logger, "export_sql", wraps=logger.export_sql) as export:
+            self.app.run()
+            export.assert_not_called()
+
+    def test_audit_tab_includes_events_and_operator_commands(self):
+        """A trilha une eventos e ações, com ordem explícita e filtros de texto."""
+        self.app.button(key="burst").click().run()
+        self.app.button(key="step1").click().run()
+        self.app.session_state.workspace = "Logs e auditoria"
+        self.app.run()
+        self.assertFalse(self.app.exception)
+        timeline = self.app.session_state.engine.audit_logger.timeline()
+        self.assertEqual(
+            [r["sequence"] for r in timeline], list(range(1, len(timeline) + 1))
+        )
+        self.assertTrue(
+            {"CONFIG_INITIAL", "ENQUEUED", "SERVICE_STARTED", "BURST", "TIME_ADVANCED"}
+            <= {r["operation"] for r in timeline}
+        )
+        self.app.text_input(key="log_search").set_value("PED-0001").run()
+        self.assertFalse(self.app.exception)
+        self.assertTrue(len(self.app.dataframe[-1].value) > 0)
