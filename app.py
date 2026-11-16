@@ -5,6 +5,7 @@ núcleo fastfood. HTML recebe somente textos escapados, nunca código do usuári
 """
 
 import sqlite3
+import json
 import time
 from html import escape
 from pathlib import Path
@@ -20,6 +21,7 @@ from fastfood.domain.enums import (
 from fastfood.domain.order import Order
 from fastfood.domain.rules import BusinessRules
 from fastfood.services.scenarios import add_burst, create_engine, metrics
+from fastfood.services.playback import PlaybackClock, advance_playback
 
 # Vocabulário de apresentação; valores internos continuam sendo enums compartilhados.
 CHANNELS = {
@@ -44,12 +46,14 @@ ROOT = (
 
 
 def act(callback, message):
-    """Executa ação de usuário e apresenta erros esperados sem quebrar a sessão."""
+    """Executa um comando; mantém o resultado visível mesmo após um rerun."""
     try:
         callback()
-        st.success(message)
+        st.session_state.notice = ("success", message)
+        return True
     except (ValueError, TypeError, sqlite3.Error, OSError) as error:
-        st.error(f"Não foi possível: {error}")
+        st.session_state.notice = ("error", f"Não foi possível: {error}")
+        return False
 
 
 def init_session():
@@ -61,8 +65,69 @@ def init_session():
             db_path=directory / f"{uuid4().hex}.sqlite3"
         )
         st.session_state.auto = False
-        st.session_state.last_tick = time.monotonic()
-        st.session_state.burst_tick = 0
+    if "playback_clock" not in st.session_state:
+        st.session_state.playback_clock = PlaybackClock()
+
+
+def reset_clock():
+    """Descarta tempo pausado e começa a medir a configuração recém-aplicada."""
+    st.session_state.playback_clock.reset(time.monotonic())
+
+
+def toggle_playback():
+    """Inicia/pausa o temporizador por ação explícita no controle principal."""
+    running = not st.session_state.auto
+    engine = st.session_state.engine
+    if not act(
+        lambda: engine.audit_logger.record_action(
+            engine.current_time,
+            "PLAYBACK_STARTED" if running else "PLAYBACK_PAUSED",
+            {"speed": st.session_state.speed},
+        ),
+        "Reprodução iniciada." if running else "Reprodução pausada.",
+    ):
+        return
+    st.session_state.auto = running
+    reset_clock()
+
+
+def manual_advance(engine, seconds):
+    """Registra o comando manual e seus limites na mesma transação do avanço."""
+    with engine._atomic():
+        before = engine.current_time
+        engine.advance(seconds)
+        engine.audit_logger.record_action(
+            engine.current_time,
+            "TIME_ADVANCED",
+            {"from": before, "to": engine.current_time},
+        )
+
+
+def submit_order():
+    """Admite um pedido; só limpa seu ID quando a operação realmente funciona."""
+    state = st.session_state
+    identifier = state.order_id.strip() or "PED-" + uuid4().hex[:6].upper()
+    if act(
+        lambda: state.engine.enqueue(
+            Order(
+                identifier,
+                CHANNELS[state.channel],
+                COMPLEXITIES[state.complexity],
+                state.engine.current_time,
+                state.courier and state.channel == "Delivery",
+            )
+        ),
+        "Pedido adicionado. Use Iniciar simulação ou avance manualmente.",
+    ):
+        state.order_id = ""
+
+
+def reset_session():
+    """Fecha o banco atual sem apagá-lo e prepara uma nova simulação isolada."""
+    st.session_state.engine.audit_logger.close()
+    for key in list(st.session_state):
+        if key != "reset":
+            del st.session_state[key]
 
 
 def ticket_card(ticket, engine):
@@ -76,7 +141,7 @@ def ticket_card(ticket, engine):
     st.markdown(
         f"""<div class="ticket" style="border-left-color:{color}">
         <div class="ticket-top"><b>{escape(ticket.id)}</b><span style="color:{color}">{SLA_LABELS[status]}</span></div>
-        <p>{channel} · {ticket.order.complexity.value.lower()}</p>
+        <p>{channel} · {next(k for k, v in COMPLEXITIES.items() if v == ticket.order.complexity)}</p>
         <div class="ticket-top"><strong>{wait}s de espera</strong><span>meta {target}s</span></div>
         <div class="wait-track"><i style="width:{min(100, 100 * wait / target)}%;background:{color}"></i></div></div>""",
         unsafe_allow_html=True,
@@ -139,6 +204,7 @@ def laboratory(engine):
                 ),
                 "Parâmetros aplicados e registrados.",
             )
+            st.rerun()
     st.subheader("Imprevistos da cozinha")
     a, b = st.columns(2)
     if a.button(
@@ -157,13 +223,14 @@ def laboratory(engine):
         remaining = st.number_input(
             "Novo tempo restante do preparo atual (s)", 1, 86400, 60, key="remaining"
         )
-        if st.form_submit_button(
-            "Ajustar preparo atual", disabled=engine.preparing_ticket is None
-        ):
+        if st.form_submit_button("Ajustar preparo atual"):
             act(
                 lambda: engine.adjust_remaining(remaining),
                 "Tempo restante ajustado e auditado.",
             )
+            st.rerun()
+    st.caption("Informe o novo restante e aplique quando houver pedido em preparo.")
+    st.button("Atualizar pedidos para cancelamento", key="refresh_waiting")
     waiting = [t.id for t in engine.queue.snapshot()]
     if waiting:
         cancel = st.selectbox(
@@ -179,6 +246,13 @@ def history(engine):
     logger = engine.audit_logger
     st.subheader("Cada decisão deixa uma trilha")
     st.caption(
+        "Auditoria desta sessão: eventos do motor e comandos do operador. Não há identificação pessoal ou histórico compartilhado entre visitantes. Horário real em UTC."
+    )
+    st.button("Atualizar histórico", key="refresh_history")
+    st.caption(
+        f"Consulta no segundo {engine.current_time}. Atualize para incluir novas decisões ou pause a simulação antes de exportar."
+    )
+    st.caption(
         "Banco exclusivo desta sessão. Entradas, inícios, conclusões, cancelamentos e mudanças de configuração ficam registrados. SQL inclui schema e dados; importe em banco vazio."
     )
     a, b = st.columns(2)
@@ -188,6 +262,7 @@ def history(engine):
         "logs.sql",
         "application/sql",
         key="download_sql",
+        on_click="ignore",
     )
     b.download_button(
         "Baixar estrutura · SQL",
@@ -195,6 +270,7 @@ def history(engine):
         "schema.sql",
         "application/sql",
         key="download_schema",
+        on_click="ignore",
     )
     filter_type = st.selectbox(
         "Tipo de evento",
@@ -210,21 +286,61 @@ def history(engine):
     )
     with st.expander("Alterações de regras e incidentes"):
         st.dataframe(logger.actions(), hide_index=True, width="stretch")
+    st.subheader("Trilha completa em ordem de registro")
+    timeline = logger.timeline()
+    kinds = st.multiselect(
+        "Operações na auditoria",
+        sorted({r["operation"] for r in timeline}),
+        key="log_operations",
+    )
+    search = st.text_input(
+        "Buscar ID ou detalhe",
+        key="log_search",
+        placeholder="Ex.: PED-0001, remaining_after",
+    )
+    filtered = [
+        row
+        for row in timeline
+        if (not kinds or row["operation"] in kinds)
+        and (
+            not search
+            or search.casefold() in json.dumps(row, ensure_ascii=False).casefold()
+        )
+    ]
+    st.caption(
+        f"{len(filtered)} de {len(timeline)} registros. A tabela mostra os últimos 500; a exportação inclui todos os filtrados."
+    )
+    st.dataframe(filtered[-500:], hide_index=True, width="stretch")
+    st.download_button(
+        "Exportar auditoria filtrada · JSON",
+        json.dumps(filtered, ensure_ascii=False, indent=2),
+        "auditoria.json",
+        "application/json",
+        on_click="ignore",
+        key="download_audit",
+    )
 
 
 def dashboard(engine):
     """Painel operacional com progresso calculado pelo relógio simulado."""
     m = metrics(engine)
-    cols = st.columns(4)
-    cols[0].metric(
-        "RELÓGIO SIMULADO",
-        f"{engine.current_time // 60:02}:{engine.current_time % 60:02}",
+    mode = "Em andamento" if st.session_state.auto else "Relógio pausado"
+    st.markdown(
+        f'<div class="live-status"><span class="status-dot {"running" if st.session_state.auto else ""}"></span>{mode}<span>1 estação · FIFO com justiça por cota</span></div>',
+        unsafe_allow_html=True,
     )
-    cols[1].metric("NA FILA", len(engine.queue.snapshot()))
-    cols[2].metric("FINALIZADOS", m["completed"])
-    cols[3].metric(
-        "INÍCIOS NO SLA", "—" if m["compliance"] is None else f"{m['compliance']:.1f}%"
-    )
+    with st.container(key="metrics"):
+        cols = st.columns(4)
+        cols[0].metric(
+            "RELÓGIO SIMULADO",
+            f"{engine.current_time // 60:02}:{engine.current_time % 60:02}",
+        )
+        cols[1].metric("NA FILA", len(engine.queue.snapshot()))
+        cols[2].metric("FINALIZADOS", m["completed"])
+        cols[3].metric(
+            "INÍCIOS NO SLA",
+            "—" if m["compliance"] is None else f"{m['compliance']:.1f}%",
+        )
     st.caption(
         f"Espera média dos iniciados: {m['mean_wait']:.1f}s · Maior espera: {m['max_wait']}s · {m['started']} pedidos iniciados"
     )
@@ -258,7 +374,7 @@ def dashboard(engine):
             )
         st.dataframe(per_channel, hide_index=True, width="stretch")
     cooking = engine.preparing_ticket
-    with st.container(border=True):
+    with st.container(border=True, key="station"):
         st.subheader(
             "Estação 01 · "
             + (
@@ -288,7 +404,7 @@ def dashboard(engine):
             st.info(
                 "Registre pedidos e avance o relógio para iniciar o preparo."
                 if not engine.queue.snapshot()
-                else "Há pedidos prontos para começar. Avance o relógio."
+                else "Pedidos prontos para começar. Clique em Iniciar simulação ou avance +1 segundo."
             )
     chosen = engine.dispatcher.policy.choose_priority(engine.queue)
     chosen_text = (
@@ -313,7 +429,10 @@ def dashboard(engine):
                 unsafe_allow_html=True,
             )
             if not tickets:
-                st.caption("Faixa livre. Novos pedidos aparecerão aqui.")
+                st.markdown(
+                    '<div class="empty-lane">Fila livre<span>Novos pedidos aparecerão aqui.</span></div>',
+                    unsafe_allow_html=True,
+                )
             for ticket in tickets[:12]:
                 ticket_card(ticket, engine)
             if len(tickets) > 12:
@@ -338,14 +457,10 @@ def dashboard(engine):
 
 
 def main():
-    """Inicializa a página e os comandos; só a área viva avança automaticamente."""
+    """Mantém navegação/formulários estáveis; só a operação usa temporizador."""
     st.set_page_config(
         page_title="KitchenFlow · Cozinha em movimento", page_icon="🍔", layout="wide"
     )
-    if st.session_state.pop("stop_requested", False):
-        st.session_state.auto = False
-    # O erro sobrevive ao rerun que desliga a reprodução, para explicar a parada.
-    automation_error = st.session_state.pop("automation_error", None)
     init_session()
     engine = st.session_state.engine
     st.markdown(
@@ -354,143 +469,176 @@ def main():
         + "</style>",
         unsafe_allow_html=True,
     )
-    st.markdown(
-        '<div class="eyebrow">KITCHENFLOW / LABORATÓRIO DE OPERAÇÕES</div><h1>Uma cozinha. Cada segundo conta.</h1><p class="lead">Experimente o movimento, acompanhe a fila e entenda cada decisão.</p>',
-        unsafe_allow_html=True,
-    )
-    if automation_error:
-        st.error(automation_error)
+
     with st.sidebar:
-        st.markdown("## 🍔 KitchenFlow")
-        st.caption("SIMULAÇÃO ACADÊMICA · PROJETO A3")
-        with st.form("new_order", clear_on_submit=True):
+        st.markdown(
+            '<div class="brand"><span class="brand-mark">KF</span><div>KitchenFlow<small>COZINHA EM MOVIMENTO</small></div></div>',
+            unsafe_allow_html=True,
+        )
+        with st.form("new_order"):
             st.subheader("Novo pedido")
-            order_id = st.text_input(
-                "Identificador (opcional)", max_chars=64, key="order_id"
+            st.text_input(
+                "Identificador (opcional)",
+                max_chars=64,
+                key="order_id",
+                placeholder="Ex.: MESA-12",
             )
-            channel = st.selectbox("Canal", list(CHANNELS), key="channel")
-            complexity = st.selectbox(
-                "Complexidade", list(COMPLEXITIES), key="complexity"
+            st.selectbox("Canal", list(CHANNELS), key="channel")
+            st.selectbox("Complexidade", list(COMPLEXITIES), key="complexity")
+            st.checkbox("Entregador já aguarda", key="courier")
+            st.form_submit_button(
+                "Adicionar à fila",
+                type="primary",
+                width="stretch",
+                on_click=submit_order,
             )
-            courier = st.checkbox("Entregador já aguarda", key="courier")
-            if st.form_submit_button(
-                "Adicionar à fila", type="primary", width="stretch"
-            ):
-
-                def enqueue():
-                    """Gera ID único quando vazio e usa o horário real do motor."""
-                    identifier = order_id.strip() or "PED-" + uuid4().hex[:6].upper()
-                    engine.enqueue(
-                        Order(
-                            identifier,
-                            CHANNELS[channel],
-                            COMPLEXITIES[complexity],
-                            engine.current_time,
-                            courier and channel == "Delivery",
-                        )
-                    )
-
-                act(enqueue, "Pedido adicionado à fila.")
-        st.divider()
-        st.subheader("Controle do tempo")
-        c1, c2 = st.columns(2)
-        if c1.button("+1 segundo", key="step1"):
-            act(lambda: engine.advance(1), "Relógio avançado.")
-        if c2.button("+60 segundos", key="step60"):
-            act(lambda: engine.advance(60), "Relógio avançado.")
-        seconds = st.number_input(
-            "Avanço manual (s)", 1, 86400, 180, key="manual_seconds"
-        )
-        if st.button("Avançar", key="advance"):
-            act(lambda: engine.advance(seconds), "Relógio avançado.")
-        st.toggle("Reprodução automática", key="auto")
-        st.select_slider(
-            "Segundos simulados por atualização",
-            options=[1, 5, 15, 30, 60],
-            value=5,
-            key="speed",
-        )
-        st.checkbox("Chegadas durante reprodução", key="arrivals")
-        st.number_input(
-            "Intervalo entre chegadas (s simulados)",
-            1,
-            3600,
-            30,
-            key="arrival_interval",
-        )
         st.caption(
-            "Reprodução avança enquanto a página está aberta. Pausá-la congela o relógio; pausar a cozinha mantém a espera crescendo."
+            "Adicionar coloca na fila. O controle Iniciar simulação faz o relógio andar."
         )
-        st.divider()
-        st.subheader("Cenários")
-        scenario = st.selectbox("Perfil", ["Justiça 3:1", "Aleatório"], key="scenario")
-        count = st.number_input("Pedidos no lote", 1, 200, 7, key="count")
-        seed = st.number_input("Semente reproduzível", 0, 999999, 42, key="seed")
-        percent = st.slider("Deliveries urgentes (%)", 0, 100, 60, key="percent")
-        if st.button("Adicionar cenário", key="burst"):
-            act(
-                lambda: add_burst(engine, count, seed, percent, scenario),
-                "Lote inserido. Justiça usa 1 padrão e os demais urgentes; confira a cota atual.",
+        with st.expander("Cenários prontos", expanded=True):
+            scenario = st.selectbox(
+                "Perfil", ["Justiça 3:1", "Aleatório"], key="scenario"
+            )
+            count = st.number_input("Pedidos no lote", 1, 200, 7, key="count")
+            seed = st.number_input("Semente reproduzível", 0, 999999, 42, key="seed")
+            percent = st.slider("Deliveries urgentes (%)", 0, 100, 60, key="percent")
+            if st.button("Adicionar cenário", key="burst", width="stretch"):
+                act(
+                    lambda: add_burst(engine, count, seed, percent, scenario),
+                    "Cenário adicionado. Inicie a simulação ou use os passos manuais.",
+                )
+            st.caption(
+                "Justiça: 1 padrão e demais deliveries com entregador. A urgência depende da regra ativa; o percentual vale no perfil aleatório."
+            )
+        with st.expander("Chegadas automáticas"):
+            st.checkbox(
+                "Chegadas durante reprodução", key="arrivals", on_change=reset_clock
+            )
+            st.number_input(
+                "Intervalo entre chegadas (s simulados)",
+                1,
+                3600,
+                30,
+                key="arrival_interval",
+                on_change=reset_clock,
+            )
+            st.caption(
+                "Usa a semente e o percentual do cenário. Só gera pedidos com a reprodução ligada."
             )
         with st.expander("Nova sessão"):
             st.caption(
-                "O banco anterior permanece em data/. Baixe o SQL antes de iniciar outra sessão."
+                "Exporte o histórico antes de começar outra simulação. No Streamlit Cloud, o disco é temporário e pode ser perdido em reinícios."
             )
             confirm = st.checkbox("Confirmo iniciar outra sessão", key="reset_confirm")
-
-            def reset_session():
-                """Callback anterior aos widgets; preserva o banco e limpa parâmetros visuais."""
-                engine.audit_logger.close()
-                for key in list(st.session_state):
-                    if key != "reset":
-                        del st.session_state[key]
-
             st.button(
                 "Iniciar nova sessão",
                 disabled=not confirm,
                 key="reset",
                 on_click=reset_session,
             )
-
-    @st.fragment(run_every=1)
-    def live():
-        """Atualiza a tela; chegadas são intercaladas a cada segundo simulado."""
-        now = time.monotonic()
-        if st.session_state.auto and now - st.session_state.last_tick >= 0.9:
-            try:
-                for _ in range(st.session_state.speed):
-                    engine.advance(1)
-                    if (
-                        st.session_state.arrivals
-                        and engine.current_time % st.session_state.arrival_interval == 0
-                    ):
-                        add_burst(
-                            engine,
-                            1,
-                            st.session_state.seed + engine.current_time,
-                            st.session_state.percent,
-                            "Aleatório",
-                        )
-            except (ValueError, TypeError, sqlite3.Error) as error:
-                st.session_state.stop_requested = True
-                st.session_state.automation_error = f"Reprodução interrompida: {error}"
-                st.rerun()
-        st.session_state.last_tick = now
-        operation, lab, audit, guide = st.tabs(
-            ["Operação ao vivo", "Laboratório", "Histórico", "Como demonstrar"]
+        st.markdown(
+            '<div class="sidebar-footer">PROJETO A3 · SIMULAÇÃO ACADÊMICA<br>Python / Streamlit / SQLite</div>',
+            unsafe_allow_html=True,
         )
-        with operation:
-            dashboard(engine)
-        with lab:
-            laboratory(engine)
-        with audit:
-            history(engine)
-        with guide:
-            st.markdown(
-                """### Do pico à decisão\n1. Carregue **Justiça 3:1** em sessão vazia com regras padrão.\n2. Avance **1s** e depois **60s** três vezes: o padrão começa no segundo 181.\n3. No laboratório, aumente os preparos e adicione novos pedidos. Observe a espera.\n4. Pause a cozinha, avance o relógio e acompanhe os SLAs excedidos.\n5. Retome, cancele um pedido em espera e exporte o histórico SQL.\n\n**SLA = início do preparo − entrada na fila.** A cota protege oportunidades de atendimento; não aumenta a capacidade da cozinha. Uma sobrecarga pode violar SLAs.\n\nAs metas, durações e urgência são hipóteses didáticas configuráveis. Uma estação, sem interrupção para trocar de pedido. POO, FIFO, política por cota e SQLite sustentam a interface."""
-            )
 
-    live()
+    st.markdown(
+        '<div class="hero"><div class="eyebrow">KITCHENFLOW / CENTRAL DE OPERAÇÕES</div><h1>Uma cozinha. Cada segundo conta.</h1><p>Organize a fila, acompanhe o preparo e experimente novas decisões.</p><span class="hero-tag">Laboratório de fast food</span></div>',
+        unsafe_allow_html=True,
+    )
+    # Os controles ficam fora do fragmento: não piscam nem perdem foco a cada segundo.
+    with st.container(key="playback_controls"):
+        start, speed, one, minute = st.columns(
+            [2.1, 1.5, 1, 1.2], vertical_alignment="bottom"
+        )
+        start.button(
+            "Pausar simulação" if st.session_state.auto else "Iniciar simulação",
+            key="play",
+            type="primary",
+            width="stretch",
+            on_click=toggle_playback,
+            icon=":material/pause:"
+            if st.session_state.auto
+            else ":material/play_arrow:",
+        )
+        speed.selectbox(
+            "Velocidade",
+            [1, 5, 15, 30, 60],
+            index=1,
+            format_func=lambda v: f"{v}× · {v} s/s",
+            key="speed",
+            on_change=reset_clock,
+        )
+        if one.button(
+            "+1 segundo", key="step1", disabled=st.session_state.auto, width="stretch"
+        ):
+            act(lambda: manual_advance(engine, 1), "Relógio avançado em 1 segundo.")
+        if minute.button(
+            "+60 segundos",
+            key="step60",
+            disabled=st.session_state.auto,
+            width="stretch",
+        ):
+            act(lambda: manual_advance(engine, 60), "Relógio avançado em 60 segundos.")
+        with st.expander("Avanço personalizado"):
+            seconds = st.number_input(
+                "Avanço manual (s)", 1, 86400, 180, key="manual_seconds"
+            )
+            if st.button("Avançar", key="advance", disabled=st.session_state.auto):
+                act(lambda: manual_advance(engine, seconds), "Relógio avançado.")
+        st.caption(
+            "Iniciar move o relógio. Pausar permite avançar passo a passo. Pausar a cozinha, no Laboratório, suspende somente a produção."
+        )
+
+    notice = st.session_state.pop("notice", None)
+    if notice:
+        getattr(st, notice[0])(notice[1])
+    # A navegação também é estável. Abrir Histórico atualiza o relatório sob demanda.
+    operation, lab, audit, guide = st.tabs(
+        ["Operação ao vivo", "Laboratório", "Logs e auditoria", "Como demonstrar"],
+        key="workspace",
+    )
+
+    @st.fragment(run_every=1 if st.session_state.auto else None, key="kitchen_live")
+    def live():
+        """Consome tempo acumulado sem resetá-lo por um clique ou rerun antecipado."""
+        if st.session_state.auto:
+            try:
+                due = st.session_state.playback_clock.consume(
+                    time.monotonic(), st.session_state.speed
+                )
+                if due:
+                    advance_playback(
+                        engine,
+                        due,
+                        arrivals=st.session_state.arrivals,
+                        interval=st.session_state.arrival_interval,
+                        seed=st.session_state.seed,
+                        urgent_percent=st.session_state.percent,
+                    )
+            except (ValueError, TypeError, sqlite3.Error) as error:
+                st.session_state.auto = False
+                st.session_state.notice = ("error", f"Reprodução interrompida: {error}")
+                st.rerun()
+        dashboard(engine)
+
+    with operation:
+        live()
+    with lab:
+        laboratory(engine)
+    with audit:
+        history(engine)
+    with guide:
+        st.subheader("Da fila à decisão, em poucos passos")
+        st.markdown("""1. Em uma sessão nova, carregue **Justiça 3:1** com sete pedidos.
+2. Para observar continuamente, clique em **Iniciar simulação**. O relógio e a produção avançam na velocidade selecionada.
+3. Para demonstrar a cota com precisão, pause a simulação, avance **1 segundo** e depois **60 segundos** três vezes: o padrão começa no segundo 181 se você partiu de zero.
+4. No **Laboratório**, altere tempos e metas. SLA e urgência novos afetam próximas chegadas; preparo afeta próximos inícios.
+5. Pause a cozinha, avance o relógio e observe a espera crescer. Retome ou redefina o restante do preparo.
+6. Abra **Histórico**, confira os registros e baixe o SQL completo.
+
+**SLA = início do preparo − entrada na fila.** A cota protege oportunidades; não aumenta a capacidade da cozinha. Sobrecarga pode exceder metas.
+
+Uma estação, sem trocar o pedido ativo por outro. Os valores são hipóteses didáticas configuráveis. A reprodução depende da aba aberta; ao voltar de uma longa suspensão, recupera no máximo cinco segundos reais por atualização.""")
 
 
 if __name__ == "__main__":

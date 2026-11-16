@@ -155,4 +155,8 @@ Campos públicos: `dispatcher`, `queue`, `rules`, `audit_logger`; `current_time:
 - `dashboard(engine)`: relógio, indicadores, estação, faixas, previsão de próxima faixa e detalhes dos tickets.
 - `main()`: configura página, widgets, sessão e fragmento. Funções locais `enqueue()`/`reset_session()` admitem pedido e iniciam sessão nova; `live()` avança automaticamente e intercala chegadas.
 
-`CHANNELS`, `COMPLEXITIES` e `SLA_LABELS` traduzem enums para rótulos. `ROOT` resolve recursos a partir de app.py. `session_state.auto` controla reprodução, `last_tick` evita avanço duplicado imediato; `stop_requested` e `automation_error` mantêm o motivo de uma parada após rerun. Velocidade e intervalo são segundos simulados, não compromisso de tempo real.
+`CHANNELS`, `COMPLEXITIES` e `SLA_LABELS` traduzem enums para rótulos. `ROOT` resolve recursos a partir de app.py. `session_state.auto` controla a reprodução e `notice` preserva mensagens entre reruns. O fragmento automático contém apenas o painel; formulários e navegação ficam fora dele.
+
+`PlaybackClock` (`services/playback.py`) guarda `anchor`, o último segundo real consumido. `reset(now)` inicia uma janela após pausa/mudança; `consume(now, speed)` acumula frações mesmo entre cliques, retorna segundos simulados e limita recuperação a cinco segundos reais por ciclo. `advance_playback()` intercala chegadas nas fronteiras configuradas, em transação única. Não é relógio de precisão comercial.
+
+`AuditLogger.timeline()` une eventos e ações pela sequência global. A aba Logs e auditoria filtra operação/ID/detalhes, mostra até 500 resultados e exporta todos os filtrados em JSON. SQL inclui o banco completo. `toggle_playback()` registra PLAYBACK_STARTED/PLAYBACK_PAUSED; `manual_advance()` registra TIME_ADVANCED com instante anterior/posterior. A trilha descreve operações bem-sucedidas da sessão, sem autenticação/autoria pessoal.

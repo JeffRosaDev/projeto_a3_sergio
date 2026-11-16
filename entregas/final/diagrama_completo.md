@@ -104,6 +104,11 @@ classDiagram
     +wait_seconds(ticket, now) int
     +status(ticket, now) SlaStatus
   }
+  class PlaybackClock {
+    +float anchor
+    +reset(now)
+    +consume(now, speed) int
+  }
   class Dispatcher {
     +PriorityQueue queue
     +QuotaFairnessPolicy policy
@@ -160,6 +165,7 @@ classDiagram
     +record_action(now, action, details)
     +fetch_all() list
     +actions() list
+    +timeline() list
     +count() int
     +export_sql(output_path) str
     +close()
@@ -178,6 +184,7 @@ classDiagram
   Dispatcher --> AuditLogger
   SimulationEngine --> Dispatcher
   SimulationEngine --> BusinessRules
+  PlaybackClock ..> SimulationEngine : segundos a avancar pela interface
   SimulationEngine --> AuditLogger
   SimulationEngine --> SimulationSnapshot : produz
   SimulationEngine o-- Ticket : registro da sessão
