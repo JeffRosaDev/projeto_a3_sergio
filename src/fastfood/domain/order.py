@@ -6,6 +6,7 @@ from .rules import BusinessRules
 
 @dataclass(frozen=True, slots=True)
 class Order:
+    # Identificador fictício, canal, complexidade, chegada e presença do entregador.
     id: str
     channel: OrderChannel
     complexity: OrderComplexity
@@ -13,8 +14,13 @@ class Order:
     courier_waiting: bool = False
 
     def __post_init__(self):
+        """Normaliza os valores e rejeita dados operacionais inválidos."""
         if not isinstance(self.id, str) or not self.id.strip():
             raise ValueError("O pedido precisa de um ID válido.")
+
+        if len(self.id.strip()) > 64:
+            raise ValueError("O ID deve ter até 64 caracteres.")
+        object.__setattr__(self, "id", self.id.strip())
 
         if isinstance(self.arrival_time, bool) or not isinstance(
             self.arrival_time, int

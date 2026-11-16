@@ -36,9 +36,7 @@ class TestOrderTicket(unittest.TestCase):
     def test_order_valido(self):
         """Verifica se um pedido válido é criado corretamente."""
 
-        pedido = Order(
-            "PED-001", "delivery", "simple", 10, True
-        )
+        pedido = Order("PED-001", "delivery", "simple", 10, True)
 
         self.assertEqual(pedido.id, "PED-001")
 
@@ -46,25 +44,19 @@ class TestOrderTicket(unittest.TestCase):
         """Impede pedidos com horário de chegada negativo."""
 
         with self.assertRaises(ValueError):
-            Order(
-                "PED-002", "delivery", "simple", -1, False
-            )
+            Order("PED-002", "delivery", "simple", -1, False)
 
     def test_canal_invalido(self):
         """Rejeita canais que não existem em OrderChannel."""
 
         with self.assertRaises(ValueError):
-            Order(
-                "PED-003", "invalido", "simple", 0, False
-            )
+            Order("PED-003", "invalido", "simple", 0, False)
 
     def test_complexidade_invalida(self):
         """Rejeita complexidades não definidas no sistema."""
 
         with self.assertRaises(ValueError):
-            Order(
-                "PED-009", "delivery", "desconhecida", 0
-            )
+            Order("PED-009", "delivery", "desconhecida", 0)
 
     # ==================================================
     # 2. TESTES DE PRIORIDADE
@@ -76,32 +68,22 @@ class TestOrderTicket(unittest.TestCase):
         A prioridade é calculada usando BusinessRules.
         """
 
-        pedido = Order(
-            "PED-004", "delivery", "simple", 0, True
-        )
+        pedido = Order("PED-004", "delivery", "simple", 0, True)
 
         ticket = Ticket(pedido, 1)
 
-        self.assertEqual(
-            ticket.priority,
-            PriorityLevel.URGENT
-        )
+        self.assertEqual(ticket.priority, PriorityLevel.URGENT)
 
     def test_prioridade_normal(self):
         """
         Pedido de balcão deve receber prioridade STANDARD.
         """
 
-        pedido = Order(
-            "PED-005", "counter", "medium", 0, False
-        )
+        pedido = Order("PED-005", "counter", "medium", 0, False)
 
         ticket = Ticket(pedido, 2)
 
-        self.assertEqual(
-            ticket.priority,
-            PriorityLevel.STANDARD
-        )
+        self.assertEqual(ticket.priority, PriorityLevel.STANDARD)
 
     # ==================================================
     # 3. TESTES DE ESTADOS DO TICKET
@@ -114,33 +96,22 @@ class TestOrderTicket(unittest.TestCase):
         WAITING -> PREPARING -> COMPLETED
         """
 
-        pedido = Order(
-            "PED-006", "pickup", "simple", 10
-        )
+        pedido = Order("PED-006", "pickup", "simple", 10)
 
         ticket = Ticket(pedido, 1)
 
         # O ticket começa aguardando.
-        self.assertEqual(
-            ticket.status,
-            TicketStatus.WAITING
-        )
+        self.assertEqual(ticket.status, TicketStatus.WAITING)
 
         # O preparo começa no segundo 20.
         ticket.start_preparation(20)
 
-        self.assertEqual(
-            ticket.status,
-            TicketStatus.PREPARING
-        )
+        self.assertEqual(ticket.status, TicketStatus.PREPARING)
 
         # O preparo termina no segundo 80.
         ticket.complete_preparation(80)
 
-        self.assertEqual(
-            ticket.status,
-            TicketStatus.COMPLETED
-        )
+        self.assertEqual(ticket.status, TicketStatus.COMPLETED)
 
     def test_nao_concluir_sem_iniciar(self):
         """
@@ -148,9 +119,7 @@ class TestOrderTicket(unittest.TestCase):
         antes de iniciar seu preparo.
         """
 
-        pedido = Order(
-            "PED-007", "counter", "simple", 0
-        )
+        pedido = Order("PED-007", "counter", "simple", 0)
 
         ticket = Ticket(pedido, 1)
 
@@ -164,18 +133,13 @@ class TestOrderTicket(unittest.TestCase):
         Depois de CANCELLED, não pode iniciar preparo.
         """
 
-        pedido = Order(
-            "PED-008", "counter", "simple", 0
-        )
+        pedido = Order("PED-008", "counter", "simple", 0)
 
         ticket = Ticket(pedido, 1)
 
         ticket.cancel()
 
-        self.assertEqual(
-            ticket.status,
-            TicketStatus.CANCELLED
-        )
+        self.assertEqual(ticket.status, TicketStatus.CANCELLED)
 
         with self.assertRaises(ValueError):
             ticket.start_preparation(10)
@@ -186,9 +150,7 @@ class TestOrderTicket(unittest.TestCase):
         inicie seu preparo duas vezes.
         """
 
-        pedido = Order(
-            "PED-013", "delivery", "simple", 0
-        )
+        pedido = Order("PED-013", "delivery", "simple", 0)
 
         ticket = Ticket(pedido, 1)
 
@@ -203,9 +165,7 @@ class TestOrderTicket(unittest.TestCase):
         já está sendo preparado.
         """
 
-        pedido = Order(
-            "PED-014", "pickup", "simple", 0
-        )
+        pedido = Order("PED-014", "pickup", "simple", 0)
 
         ticket = Ticket(pedido, 1)
 
@@ -224,9 +184,7 @@ class TestOrderTicket(unittest.TestCase):
         um número inteiro maior que zero.
         """
 
-        pedido = Order(
-            "PED-010", "counter", "simple", 0
-        )
+        pedido = Order("PED-010", "counter", "simple", 0)
 
         with self.assertRaises(ValueError):
             Ticket(pedido, 0)
@@ -237,9 +195,7 @@ class TestOrderTicket(unittest.TestCase):
         do horário de entrada na fila.
         """
 
-        pedido = Order(
-            "PED-011", "pickup", "simple", 100
-        )
+        pedido = Order("PED-011", "pickup", "simple", 100)
 
         ticket = Ticket(pedido, 1)
 
@@ -248,10 +204,7 @@ class TestOrderTicket(unittest.TestCase):
 
         # Após a tentativa inválida,
         # o ticket deve continuar aguardando.
-        self.assertEqual(
-            ticket.status,
-            TicketStatus.WAITING
-        )
+        self.assertEqual(ticket.status, TicketStatus.WAITING)
 
     def test_conclusao_antes_do_inicio(self):
         """
@@ -259,9 +212,7 @@ class TestOrderTicket(unittest.TestCase):
         antes de ter começado.
         """
 
-        pedido = Order(
-            "PED-012", "counter", "simple", 0
-        )
+        pedido = Order("PED-012", "counter", "simple", 0)
 
         ticket = Ticket(pedido, 1)
 
@@ -271,10 +222,7 @@ class TestOrderTicket(unittest.TestCase):
             ticket.complete_preparation(50)
 
         # O estado deve permanecer PREPARING.
-        self.assertEqual(
-            ticket.status,
-            TicketStatus.PREPARING
-        )
+        self.assertEqual(ticket.status, TicketStatus.PREPARING)
 
     # ==================================================
     # 5. TESTE DE RELACIONAMENTO ENTRE OBJETOS
@@ -289,24 +237,16 @@ class TestOrderTicket(unittest.TestCase):
         e a prioridade atribuída.
         """
 
-        pedido = Order(
-            "PED-015", "delivery", "medium", 30, True
-        )
+        pedido = Order("PED-015", "delivery", "medium", 30, True)
 
         ticket = Ticket(pedido, 1)
 
         # assertIs verifica a identidade do objeto.
         self.assertIs(ticket.order, pedido)
 
-        self.assertEqual(
-            ticket.enqueued_at,
-            30
-        )
+        self.assertEqual(ticket.enqueued_at, 30)
 
-        self.assertEqual(
-            ticket.priority,
-            PriorityLevel.URGENT
-        )
+        self.assertEqual(ticket.priority, PriorityLevel.URGENT)
 
 
 # Permite executar este arquivo diretamente.

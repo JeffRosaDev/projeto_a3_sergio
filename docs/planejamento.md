@@ -1,5 +1,7 @@
 # Planejamento técnico — Sistema de filas de prioridade para fast food
 
+> Registro da divisão original entre os sete integrantes. As sete etapas estão integradas na versão final. Regras dinâmicas, assinaturas atualizadas e evidências vigentes: [README](../README.md), [escopo](escopo.md) e [diagrama completo](../entregas/final/diagrama_completo.md).
+
 ## 1. Objetivo e limites
 
 O sistema simulará o atendimento de pedidos de uma cozinha de fast food durante um horário de pico. Uma estação prepara um pedido por vez. O programa registra chegadas, escolhe o próximo pedido, acompanha o preparo, calcula a espera e o SLA, e mantém um histórico SQL dos eventos.

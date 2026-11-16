@@ -9,33 +9,29 @@ from .rules import BusinessRules
 
 @dataclass(slots=True)
 class Ticket:
+    """Pedido no fluxo; rules preserva o SLA contratado na entrada."""
+
     order: Order
     sequence: int
-    rules: BusinessRules = field(
-        default_factory=BusinessRules,
-        repr=False
-    )
+    rules: BusinessRules = field(default_factory=BusinessRules, repr=False)
 
     priority: PriorityLevel = field(init=False)
-    status: TicketStatus = field(
-        default=TicketStatus.WAITING,
-        init=False
-    )
+    status: TicketStatus = field(default=TicketStatus.WAITING, init=False)
     enqueued_at: int = field(init=False)
     started_at: int | None = field(default=None, init=False)
     completed_at: int | None = field(default=None, init=False)
 
     @property
     def id(self) -> str:
+        """Identificador do pedido associado por composição."""
         return self.order.id
 
     def __post_init__(self):
+        """Valida dependências e calcula a prioridade de admissão."""
         if not isinstance(self.order, Order):
             raise TypeError("order deve ser um objeto Order.")
 
-        if isinstance(self.sequence, bool) or not isinstance(
-            self.sequence, int
-        ):
+        if isinstance(self.sequence, bool) or not isinstance(self.sequence, int):
             raise TypeError("sequence deve ser inteiro.")
 
         if self.sequence <= 0:
@@ -47,11 +43,11 @@ class Ticket:
         self.enqueued_at = self.order.arrival_time
 
         self.priority = self.rules.priority_for(
-            self.order.channel,
-            self.order.courier_waiting
+            self.order.channel, self.order.courier_waiting
         )
 
     def start_preparation(self, now: int) -> None:
+        """Inicia somente tickets aguardando e registra o instante."""
         self._validate_time(now)
 
         if self.status != TicketStatus.WAITING:
@@ -64,6 +60,7 @@ class Ticket:
         self.status = TicketStatus.PREPARING
 
     def complete_preparation(self, now: int) -> None:
+        """Conclui somente tickets em preparo e registra o instante."""
         self._validate_time(now)
 
         if self.status != TicketStatus.PREPARING:
@@ -76,15 +73,15 @@ class Ticket:
         self.status = TicketStatus.COMPLETED
 
     def cancel(self) -> None:
+        """Cancela apenas tickets que ainda estão esperando."""
         if self.status != TicketStatus.WAITING:
-            raise ValueError(
-                "Somente tickets aguardando podem ser cancelados."
-            )
+            raise ValueError("Somente tickets aguardando podem ser cancelados.")
 
         self.status = TicketStatus.CANCELLED
 
     @staticmethod
     def _validate_time(now: int) -> None:
+        """Rejeita instantes negativos, booleanos ou fracionários."""
         if isinstance(now, bool) or not isinstance(now, int):
             raise TypeError("O horário deve ser inteiro.")
 

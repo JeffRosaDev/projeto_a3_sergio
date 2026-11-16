@@ -1,4 +1,4 @@
-"""Eventos imutáveis que conectam os serviços futuros à camada de auditoria."""
+"""Eventos imutáveis que conectam os serviços à camada de auditoria."""
 
 from dataclasses import dataclass
 
@@ -10,7 +10,7 @@ class QueueEvent:
     """Fato ocorrido na fila, com dados para reconstruir o fluxo.
 
     `queue_snapshot` lista os IDs que continuam esperando depois do evento. A
-    camada SQLite poderá serializar essa tupla como JSON sem envolver a interface.
+    camada SQLite serializa essa tupla como JSON sem envolver a interface.
     """
 
     event_id: str
@@ -73,7 +73,9 @@ class QueueEvent:
         if self.wait_seconds is not None:
             self._validate_optional_seconds("wait_seconds", self.wait_seconds)
         if self.sla_target_seconds is not None:
-            self._validate_optional_seconds("sla_target_seconds", self.sla_target_seconds)
+            self._validate_optional_seconds(
+                "sla_target_seconds", self.sla_target_seconds
+            )
             if self.sla_target_seconds == 0:
                 raise ValueError("sla_target_seconds deve ser maior que zero.")
         if self.sla_status is not None and not isinstance(self.sla_status, SlaStatus):

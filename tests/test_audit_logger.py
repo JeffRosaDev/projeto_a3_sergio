@@ -1,10 +1,10 @@
 """Testes da camada de auditoria SQL (Etapa 6)."""
 
 import json
-from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from pathlib import Path
 
 from fastfood.audit.audit_logger import AuditLogger
 from fastfood.domain.enums import (

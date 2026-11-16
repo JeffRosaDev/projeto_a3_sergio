@@ -1,111 +1,79 @@
-"""Implementação do registrador de auditoria SQLite append-only."""
+"""Persistência SQLite transacional com ordem estável e histórico de intervenções."""
 
 import json
-from pathlib import Path
 import sqlite3
-from typing import Any
+from contextlib import contextmanager
+from pathlib import Path
+from threading import RLock
+from uuid import uuid4
 
 from fastfood.domain.events import QueueEvent
 
-
 DEFAULT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS queue_events (
-    event_id            TEXT    PRIMARY KEY,
-    ticket_id           TEXT    NOT NULL,
-    event_type          TEXT    NOT NULL,
-    simulated_second    INTEGER NOT NULL,
-    channel             TEXT    NOT NULL,
-    priority            TEXT    NOT NULL,
-    queue_size_before   INTEGER NOT NULL,
-    queue_size_after    INTEGER NOT NULL,
-    queue_snapshot      TEXT    NOT NULL,
-    wait_seconds        INTEGER,
-    sla_target_seconds  INTEGER,
-    sla_status          TEXT,
-    recorded_at         TEXT    NOT NULL DEFAULT (datetime('now'))
-);
+ event_id TEXT PRIMARY KEY, ticket_id TEXT NOT NULL, event_type TEXT NOT NULL,
+ simulated_second INTEGER NOT NULL CHECK(simulated_second >= 0),
+ channel TEXT NOT NULL, priority TEXT NOT NULL,
+ queue_size_before INTEGER NOT NULL, queue_size_after INTEGER NOT NULL,
+ queue_snapshot TEXT NOT NULL, wait_seconds INTEGER, sla_target_seconds INTEGER,
+ sla_status TEXT, recorded_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS simulation_actions (
+ action_id TEXT PRIMARY KEY, simulated_second INTEGER NOT NULL,
+ action TEXT NOT NULL, details TEXT NOT NULL,
+ recorded_at TEXT NOT NULL DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS audit_sequence (
+ sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+ entry_id TEXT NOT NULL UNIQUE, entry_kind TEXT NOT NULL);
+CREATE TRIGGER IF NOT EXISTS event_sequence AFTER INSERT ON queue_events
+ BEGIN INSERT INTO audit_sequence(entry_id,entry_kind) VALUES(NEW.event_id,'event'); END;
+CREATE TRIGGER IF NOT EXISTS action_sequence AFTER INSERT ON simulation_actions
+ BEGIN INSERT INTO audit_sequence(entry_id,entry_kind) VALUES(NEW.action_id,'action'); END;
 """
+# Triggers protegem contra alterações acidentais, inclusive SQL externo comum.
+for _table in ("queue_events", "simulation_actions", "audit_sequence"):
+    for _verb in ("UPDATE", "DELETE"):
+        DEFAULT_SCHEMA += f"CREATE TRIGGER IF NOT EXISTS {_table}_no_{_verb} BEFORE {_verb} ON {_table} BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;\n"
 
 
 class AuditLogger:
-    """Registrador de eventos da simulação em SQLite com garantia append-only.
+    """Conexão por sessão, compartilhável entre reruns e serializada por RLock."""
 
-    Cada evento emitido pelo despachante ou motor de simulação é persistido
-    de forma atômica (uma transação por evento) com snapshot em JSON da fila.
-    Nenhuma operação de UPDATE ou DELETE é permitida, preservando a imutabilidade
-    e a capacidade de reproduzir todo o histórico da simulação.
-    """
-
-    def __init__(
-        self,
-        db_path: str | Path = ":memory:",
-        schema_path: str | Path | None = None,
-    ) -> None:
-        """Inicializa a conexão SQLite e garante a criação da tabela de auditoria.
-
-        Args:
-            db_path: Caminho do arquivo SQLite ou ':memory:' (padrão).
-            schema_path: Caminho opcional para o arquivo schema.sql. Se omitido,
-                         utiliza o arquivo em sql/schema.sql ou o schema padrão.
-        """
-        self._db_path = str(db_path)
-        self._connection = sqlite3.connect(self._db_path)
+    def __init__(self, db_path=":memory:", schema_path=None):
+        """Cria o schema; arquivos opcionais tornam o histórico durável em disco."""
+        self._lock = RLock()  # Serializa transações da mesma sessão.
+        self._connection = sqlite3.connect(str(db_path), check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
-        self._init_db(schema_path)
+        schema = (
+            Path(schema_path).read_text(encoding="utf-8")
+            if schema_path
+            else DEFAULT_SCHEMA
+        )
+        self._connection.executescript(schema)
 
-    def _init_db(self, schema_path: str | Path | None) -> None:
-        """Cria as tabelas necessárias a partir do schema SQL."""
-        sql = None
-        if schema_path:
-            path = Path(schema_path)
-            if path.exists():
-                sql = path.read_text(encoding="utf-8")
-        else:
-            default_path = Path(__file__).resolve().parents[3] / "sql" / "schema.sql"
-            if default_path.exists():
-                sql = default_path.read_text(encoding="utf-8")
-
-        if not sql:
-            sql = DEFAULT_SCHEMA
-
-        with self._connection:
-            self._connection.executescript(sql)
+    @contextmanager
+    def transaction(self):
+        """Savepoint aninhável: confirma tudo ou desfaz a operação inteira."""
+        with self._lock:
+            name = "s" + uuid4().hex
+            self._connection.execute(f"SAVEPOINT {name}")
+            try:
+                yield
+                self._connection.execute(f"RELEASE {name}")
+            except BaseException:
+                self._connection.execute(f"ROLLBACK TO {name}")
+                self._connection.execute(f"RELEASE {name}")
+                raise
 
     def record(self, event: QueueEvent) -> None:
-        """Registra um evento de fila de forma atômica no banco de dados.
-
-        A gravação é append-only: apenas operações de INSERT são executadas.
-        A transação garante que eventos parciais ou inválidos não corrompam
-        o histórico de auditoria.
-
-        Args:
-            event: Objeto QueueEvent contendo todos os dados do fato operacional.
-        """
+        """Insere um evento validado; parâmetros SQL impedem injeção por IDs."""
         if not isinstance(event, QueueEvent):
-            raise TypeError("event deve ser uma instância de QueueEvent.")
-
-        snapshot_json = json.dumps(list(event.queue_snapshot), ensure_ascii=False)
-        sla_status_val = event.sla_status.value if event.sla_status is not None else None
-
-        sql = """
-        INSERT INTO queue_events (
-            event_id,
-            ticket_id,
-            event_type,
-            simulated_second,
-            channel,
-            priority,
-            queue_size_before,
-            queue_size_after,
-            queue_snapshot,
-            wait_seconds,
-            sla_target_seconds,
-            sla_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        with self._connection:
+            raise TypeError("event deve ser QueueEvent.")
+        with self.transaction():
             self._connection.execute(
-                sql,
+                """INSERT INTO queue_events
+              (event_id,ticket_id,event_type,simulated_second,channel,priority,
+               queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     event.event_id,
                     event.ticket_id,
@@ -115,152 +83,100 @@ class AuditLogger:
                     event.priority.value,
                     event.queue_size_before,
                     event.queue_size_after,
-                    snapshot_json,
+                    json.dumps(event.queue_snapshot, ensure_ascii=False),
                     event.wait_seconds,
                     event.sla_target_seconds,
-                    sla_status_val,
+                    event.sla_status.value if event.sla_status else None,
                 ),
             )
 
-    def export_sql(self, output_path: str | Path | None = None) -> str:
-        """Exporta todo o histórico de eventos como um script SQL executável.
+    def record_action(self, now: int, action: str, details: dict) -> None:
+        """Registra configuração ou incidente, com instante e parâmetros completos."""
+        with self.transaction():
+            self._connection.execute(
+                "INSERT INTO simulation_actions(action_id,simulated_second,action,details) VALUES(?,?,?,?)",
+                (uuid4().hex, now, action, json.dumps(details, ensure_ascii=False)),
+            )
 
-        O script gerado contém comandos INSERT executáveis protegidos por
-        uma transação. Qualquer pessoa pode recriar o histórico executando o
-        schema.sql e em seguida o script exportado.
-
-        Args:
-            output_path: Caminho de arquivo opcional onde o script será gravado.
-
-        Returns:
-            String contendo o script SQL executável.
-        """
-        cursor = self._connection.cursor()
-        cursor.execute(
-            """
-            SELECT
-                event_id,
-                ticket_id,
-                event_type,
-                simulated_second,
-                channel,
-                priority,
-                queue_size_before,
-                queue_size_after,
-                queue_snapshot,
-                wait_seconds,
-                sla_target_seconds,
-                sla_status
-            FROM queue_events
-            ORDER BY rowid ASC
-            """
-        )
-        rows = cursor.fetchall()
-
-        lines: list[str] = [
-            "-- =============================================================",
-            "-- Exportação de auditoria da fila de prioridade para fast food",
-            "-- Gerado automaticamente pelo AuditLogger (Etapa 6)",
-            "-- =============================================================",
-            "BEGIN TRANSACTION;",
-        ]
-
+    def fetch_all(self) -> list[dict]:
+        """Lê eventos em ordem de inserção, inclusive no mesmo segundo."""
+        with self._lock:
+            rows = [
+                dict(r)
+                for r in self._connection.execute(
+                    "SELECT * FROM queue_events ORDER BY rowid"
+                )
+            ]
         for row in rows:
-            event_id = self._sql_quote(row["event_id"])
-            ticket_id = self._sql_quote(row["ticket_id"])
-            event_type = self._sql_quote(row["event_type"])
-            simulated_second = str(row["simulated_second"])
-            channel = self._sql_quote(row["channel"])
-            priority = self._sql_quote(row["priority"])
-            queue_size_before = str(row["queue_size_before"])
-            queue_size_after = str(row["queue_size_after"])
-            queue_snapshot = self._sql_quote(row["queue_snapshot"])
-            wait_seconds = "NULL" if row["wait_seconds"] is None else str(row["wait_seconds"])
-            sla_target_seconds = (
-                "NULL" if row["sla_target_seconds"] is None else str(row["sla_target_seconds"])
-            )
-            sla_status = (
-                "NULL" if row["sla_status"] is None else self._sql_quote(row["sla_status"])
-            )
+            row["queue_snapshot"] = json.loads(row["queue_snapshot"])
+        return rows
 
-            stmt = (
-                f"INSERT INTO queue_events ("
-                f"event_id, ticket_id, event_type, simulated_second, channel, "
-                f"priority, queue_size_before, queue_size_after, queue_snapshot, "
-                f"wait_seconds, sla_target_seconds, sla_status"
-                f") VALUES ("
-                f"{event_id}, {ticket_id}, {event_type}, {simulated_second}, {channel}, "
-                f"{priority}, {queue_size_before}, {queue_size_after}, {queue_snapshot}, "
-                f"{wait_seconds}, {sla_target_seconds}, {sla_status}"
-                f");"
-            )
-            lines.append(stmt)
-
-        lines.append("COMMIT;")
-        lines.append("")
-        sql_content = "\n".join(lines)
-
-        if output_path is not None:
-            path = Path(output_path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(sql_content, encoding="utf-8")
-
-        return sql_content
-
-    def fetch_all(self) -> list[dict[str, Any]]:
-        """Retorna todos os eventos registrados em formato de lista de dicionários.
-
-        O campo queue_snapshot é desserializado de JSON para lista Python.
-        """
-        cursor = self._connection.cursor()
-        cursor.execute(
-            """
-            SELECT
-                event_id,
-                ticket_id,
-                event_type,
-                simulated_second,
-                channel,
-                priority,
-                queue_size_before,
-                queue_size_after,
-                queue_snapshot,
-                wait_seconds,
-                sla_target_seconds,
-                sla_status,
-                recorded_at
-            FROM queue_events
-            ORDER BY rowid ASC
-            """
-        )
-        results = []
-        for row in cursor.fetchall():
-            row_dict = dict(row)
-            try:
-                row_dict["queue_snapshot"] = json.loads(row_dict["queue_snapshot"])
-            except Exception:
-                row_dict["queue_snapshot"] = []
-            results.append(row_dict)
-        return results
+    def actions(self) -> list[dict]:
+        """Consulta intervenções e configurações sem alterar registros."""
+        with self._lock:
+            return [
+                dict(r)
+                for r in self._connection.execute(
+                    "SELECT * FROM simulation_actions ORDER BY rowid"
+                )
+            ]
 
     def count(self) -> int:
-        """Retorna a contagem total de eventos registrados."""
-        cursor = self._connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM queue_events")
-        return cursor.fetchone()[0]
+        """Conta eventos operacionais; ações ficam em tabela própria."""
+        with self._lock:
+            return self._connection.execute(
+                "SELECT COUNT(*) FROM queue_events"
+            ).fetchone()[0]
 
-    def close(self) -> None:
-        """Fecha a conexão com o banco de dados SQLite."""
-        self._connection.close()
-
-    def __enter__(self) -> "AuditLogger":
-        return self
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        self.close()
+    def export_sql(self, output_path=None) -> str:
+        """Exporta schema e dados em ordem global, preservando recorded_at e a sequência."""
+        with self._lock:
+            lines = [
+                "-- KitchenFlow: importar em banco vazio.",
+                DEFAULT_SCHEMA,
+                "BEGIN TRANSACTION;",
+            ]
+            for entry in self._connection.execute(
+                "SELECT * FROM audit_sequence ORDER BY sequence"
+            ).fetchall():
+                table, key = (
+                    ("queue_events", "event_id")
+                    if entry["entry_kind"] == "event"
+                    else ("simulation_actions", "action_id")
+                )
+                row = self._connection.execute(
+                    f"SELECT * FROM {table} WHERE {key}=?", (entry["entry_id"],)
+                ).fetchone()
+                values = ",".join(self._sql_quote(v) for v in row)
+                lines.append(
+                    f"INSERT INTO {table} ({','.join(row.keys())}) VALUES ({values});"
+                )
+            lines.append("COMMIT;")
+            result = "\n".join(lines)
+        if output_path:
+            path = Path(output_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(result, encoding="utf-8")
+        return result
 
     @staticmethod
-    def _sql_quote(value: str) -> str:
-        """Escapa texto para inclusão literal em comando SQL."""
-        escaped = value.replace("'", "''")
-        return f"'{escaped}'"
+    def _sql_quote(value):
+        """Codifica literais na exportação; não é usada para executar entradas."""
+        if value is None:
+            return "NULL"
+        if isinstance(value, (int, float)):
+            return str(value)
+        return "'" + value.replace("'", "''") + "'"
+
+    def close(self):
+        """Libera a conexão da sessão."""
+        with self._lock:
+            self._connection.close()
+
+    def __enter__(self):
+        """Permite uso com with para fechamento garantido."""
+        return self
+
+    def __exit__(self, *args):
+        """Fecha ao sair do contexto."""
+        self.close()
