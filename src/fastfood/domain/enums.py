@@ -51,7 +51,7 @@ class SlaStatus(str, Enum):
 
 @unique
 class QueueEventType(str, Enum):
-    """Eventos que o motor emitirá para o módulo de auditoria."""
+    """Eventos que o motor emite para o módulo de auditoria."""
 
     ENQUEUED = "ENQUEUED"
     SERVICE_STARTED = "SERVICE_STARTED"

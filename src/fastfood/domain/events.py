@@ -1,4 +1,4 @@
-"""Eventos imutáveis que conectam os serviços futuros à camada de auditoria."""
+"""Eventos imutáveis que conectam os serviços à camada de auditoria."""
 
 from dataclasses import dataclass
 
@@ -10,7 +10,7 @@ class QueueEvent:
     """Fato ocorrido na fila, com dados para reconstruir o fluxo.
 
     `queue_snapshot` lista os IDs que continuam esperando depois do evento. A
-    camada SQLite poderá serializar essa tupla como JSON sem envolver a interface.
+    camada SQLite serializa essa tupla como JSON sem envolver a interface.
     """
 
     event_id: str

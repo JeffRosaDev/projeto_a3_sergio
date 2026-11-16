@@ -2,6 +2,7 @@
 
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from streamlit.testing.v1 import AppTest
 
@@ -64,3 +65,11 @@ class InterfaceTests(unittest.TestCase):
         self.app.button(key="reset").click().run()
         self.assertFalse(self.app.exception)
         self.assertEqual(len(self.app.session_state.engine.tickets), 0)
+        # Uma falha automática precisa parar a reprodução e continuar visível após rerun.
+        engine = self.app.session_state.engine
+        self.app.session_state.last_tick = 0
+        with patch.object(engine, "advance", side_effect=ValueError("Falha simulada")):
+            self.app.toggle(key="auto").set_value(True).run()
+        self.assertFalse(self.app.exception)
+        self.assertFalse(self.app.session_state.auto)
+        self.assertTrue(any("Falha simulada" in e.value for e in self.app.error))

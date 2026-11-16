@@ -15,6 +15,7 @@ class PriorityQueue:
     """
 
     def __init__(self) -> None:
+        """Cria uma deque por faixa e o índice de IDs atualmente aguardando."""
         self._ids: set[str] = set()  # Evita duplicidade em O(1).
         self._queues: dict[PriorityLevel, deque[Ticket]] = {
             PriorityLevel.URGENT: deque(),
@@ -56,7 +57,7 @@ class PriorityQueue:
 
     def snapshot(self) -> list[Ticket]:
         """
-        Devolve um cópia da lista contendo todos os tickets em espera.
+        Devolve uma cópia da lista contendo todos os tickets em espera.
         A ordem apresentada prioriza visualmente a lista de urgentes seguida da padrão,
         sem alterar o estado das deques.
         """

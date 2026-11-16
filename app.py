@@ -344,6 +344,8 @@ def main():
     )
     if st.session_state.pop("stop_requested", False):
         st.session_state.auto = False
+    # O erro sobrevive ao rerun que desliga a reprodução, para explicar a parada.
+    automation_error = st.session_state.pop("automation_error", None)
     init_session()
     engine = st.session_state.engine
     st.markdown(
@@ -356,6 +358,8 @@ def main():
         '<div class="eyebrow">KITCHENFLOW / LABORATÓRIO DE OPERAÇÕES</div><h1>Uma cozinha. Cada segundo conta.</h1><p class="lead">Experimente o movimento, acompanhe a fila e entenda cada decisão.</p>',
         unsafe_allow_html=True,
     )
+    if automation_error:
+        st.error(automation_error)
     with st.sidebar:
         st.markdown("## 🍔 KitchenFlow")
         st.caption("SIMULAÇÃO ACADÊMICA · PROJETO A3")
@@ -469,7 +473,7 @@ def main():
                         )
             except (ValueError, TypeError, sqlite3.Error) as error:
                 st.session_state.stop_requested = True
-                st.error(f"Reprodução interrompida: {error}")
+                st.session_state.automation_error = f"Reprodução interrompida: {error}"
                 st.rerun()
         st.session_state.last_tick = now
         operation, lab, audit, guide = st.tabs(
