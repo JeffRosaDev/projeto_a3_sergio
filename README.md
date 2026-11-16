@@ -1,67 +1,93 @@
-# Sistema de filas de prioridade para fast food
+# KitchenFlow · laboratório de uma cozinha de fast food
 
-Projeto académico de Algoritmos e Programação Orientada a Objetos. O nosso objetivo é construir uma simulação de fila para pedidos de fast food, com prioridade, proteção contra starvation, acompanhamento de SLA, auditoria SQL e interface Streamlit.
+Simulador acadêmico do Projeto A3, desenvolvido por sete integrantes com autorização do professor. O núcleo das sete etapas está integrado à interface Streamlit: prioridade, FIFO, cota contra starvation, SLA, intervenções manuais e histórico SQLite.
 
-## Estado atual
+![Painel da cozinha](assets/kitchenflow.png)
 
-Até a **Etapa 6 — Auditoria SQL**, foram implementados:
-- **Etapa 1:** Escopo, enums, regras de negócio configuráveis e contratos de domínio.
-- **Etapa 2:** Estruturação de pedidos (`Order`) e do ciclo de vida dos tickets (`Ticket`).
-- **Etapa 3:** Filas independentes em memória (`collections.deque`) garantindo ordem FIFO por nível de prioridade.
-- **Etapa 4:** Política de justiça (`QuotaFairnessPolicy`) com cota rotativa contra starvation.
-- **Etapa 5:** Serviços de monitoramento de SLA (`SlaMonitor`), despacho (`Dispatcher`) e motor de simulação discreta (`SimulationEngine`).
-- **Etapa 6:** Auditoria SQL append-only com SQLite (`AuditLogger`), serialização JSON de snapshots da fila, esquema relacional (`sql/schema.sql`) e exportação executável (`exports/logs.sql`).
+## Executar
 
-A aplicação interativa Streamlit (Etapa 7) está mapeada para a entrega final.
+Python **3.11 ou superior**. A versão da interface validada é Streamlit 1.67.0.
 
-*Nota: Os prazos de SLA, tempos de preparo e a cota de atendimento são parâmetros didáticos da simulação. Eles não representam medições de restaurantes reais.*
-
-## Documentação
-
-- [Escopo e regras de negócio](docs/escopo.md)
-- [Modelagem e diagrama inicial](docs/modelagem.md)
-- [Dicionário de classes e métodos](docs/dicionario.md)
-- [Planeamento das sete etapas](docs/planejamento.md)
-- [Relatório parcial da primeira entrega](entregas/primeira_entrega/relatorio_parte_1_contexto.docx)
-- [Apresentação revisada da primeira entrega](entregas/primeira_entrega/apresentacao_contexto_10-11_revisada.pptx)
-
-## Estrutura do projeto
-
-```text
-docs/                 Escopo, modelagem, dicionário e planeamento
-entregas/             Materiais das entregas académicas
-exports/              Exportações de histórico SQL executável (logs.sql)
-sql/                  Esquema de criação do banco de dados (schema.sql)
-src/fastfood/
-  audit/              Registrador SQLite append-only (AuditLogger)
-  domain/             Tipos, regras, eventos, pedidos e tickets
-  queues/             Faixas FIFO e política de seleção por cota
-  services/           Monitoramento de SLA, despacho e simulação
-tests/                Suíte de testes automatizados do projeto
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-O núcleo desenvolvido até agora utiliza estritamente a biblioteca padrão do Python. As bibliotecas de terceiros serão especificadas quando a interface visual for integrada.
+No macOS/Linux, substitua `.venv\Scripts\python.exe` por `.venv/bin/python`.
+Com uv: `uv sync --extra dev` e `uv run streamlit run app.py`. O arquivo `uv.lock` fixa a resolução das dependências.
 
-## Instalação e Testes Automatizados
+## O que experimentar
 
-1. **Instale o pacote localmente em modo editável** (vincula automaticamente a pasta `src/` ao ambiente sem precisar definir a variável `PYTHONPATH` manualmente):
+- Registrar pedidos individuais ou lotes de até 200 pedidos com semente reproduzível.
+- Acompanhar duas faixas FIFO, pedido em preparo, próximo nível elegível, espera, metas, percentuais e indicadores por canal.
+- Avançar manualmente ou reproduzir automaticamente, com chegadas intercaladas no tempo simulado.
+- Alterar metas de SLA, durações simples/média/complexa, cota, limiar de risco e urgência de novos deliveries.
+- Pausar a cozinha sem parar o relógio, redefinir o tempo restante de um preparo e cancelar pedidos aguardando.
+- Baixar SQL completo, incluindo estrutura, eventos, intervenções, timestamps e ordem global.
 
-   ```bash
-   uv pip install -e .
-   ```
+## Regras e efeitos das mudanças
 
-2. **Execute a suíte de testes automatizados:**
+O padrão representa **uma estação não preemptiva**. Delivery com entregador aguardando entra como urgente; os demais são padrão. A prioridade permanece no ticket. Cada faixa respeita FIFO. Depois de até três inícios urgentes, o padrão mais antigo recebe sua oportunidade, se estiver esperando. Uma fila vazia não bloqueia a outra.
 
-   ```bash
-   uv run python -m unittest discover -s tests -p "test*.py" -v
-   ```
+SLA mede **entrada na fila até início do preparo**. Metas iniciais: delivery 180 s, retirada 300 s, balcão 480 s. Preparo: simples 60 s, médio 120 s, complexo 180 s. Alerta em 80% da meta; excesso somente quando espera > meta. Espera exatamente igual à meta cumpre o SLA se o preparo iniciar. Todos esses valores são hipóteses didáticas, não dados de restaurantes reais.
 
-3. **Rode o linter (Ruff) para checagem do código:**
+- **SLA e prioridade:** alterações valem para novos pedidos. Tickets existentes preservam a configuração de admissão e seus resultados históricos.
+- **Duração por complexidade:** vale no próximo início de preparo. O preparo atual mantém sua previsão até uma intervenção explícita.
+- **Cota:** muda imediatamente, preservando o contador acumulado limitado à nova cota.
+- **Limiar de alerta:** muda a sinalização atual de tickets aguardando; não reescreve eventos.
+- **Pausa da reprodução:** congela o relógio. **Pausa da cozinha:** ao avançar o relógio, o preparo fica suspenso e a espera continua crescendo.
+- **Ajustar preparo atual:** define o novo tempo restante (não soma esse valor); registra antes/depois no histórico.
 
-   ```bash
-   uv run ruff check --fix
-   ```
+A cota limita os urgentes entre oportunidades da faixa padrão. Não limita a espera de todo ticket a três pedidos, porque podem existir padrões mais antigos à frente. Sob sobrecarga, SLAs podem ser violados. A simulação torna esses gargalos observáveis. Não há garantia contra uma cozinha pausada indefinidamente ou parâmetros alterados continuamente de forma adversarial.
 
-## Fluxo colaborativo
+`advance(0)` consulta sem alterar estado; o primeiro despacho ocorre no próximo segundo. IDs são únicos por sessão, inclusive após conclusão ou cancelamento. Chegadas devem coincidir com o relógio atual. A capacidade didática é de até 2000 pedidos simultâneos aguardando; avanço máximo de 86400 s por comando.
 
-O desenvolvimento segue a divisão descrita em [docs/planejamento.md](docs/planejamento.md). Cada integrante é responsável pelo código, documentação e testes da sua respetiva etapa. O fluxo determina que a etapa seguinte só pode ser iniciada após o integrante atual ter a sua Pull Request revista e integrada na branch `main`.
+## Persistência e integridade
+
+Cada sessão tem um banco exclusivo em `data/` (ignorado pelo Git). Reruns preservam o motor em `st.session_state`. Reiniciar a sessão mantém o banco anterior em disco e cria outro. Atualizar/reabrir o navegador pode criar nova sessão: o projeto preserva os logs, mas **não retoma automaticamente o motor a partir do banco**. Exporte o SQL antes de encerrar a demonstração.
+
+`queue_events` guarda eventos operacionais; `simulation_actions` guarda regras e intervenções; `audit_sequence` ordena ambos inclusive no mesmo segundo. Transações e checkpoints restauram memória e SQL juntos em caso de falha. Triggers rejeitam UPDATE/DELETE usuais, e IDs de eventos não podem ser duplicados. Isso não constitui proteção criptográfica contra um administrador que altere o arquivo/schema.
+
+O download é autossuficiente e deve ser importado em **banco vazio**:
+
+```python
+import sqlite3
+from pathlib import Path
+with sqlite3.connect('reproducao.sqlite3') as connection:
+    connection.executescript(Path('logs.sql').read_text(encoding='utf-8'))
+    print(connection.execute('SELECT * FROM audit_sequence ORDER BY sequence').fetchall())
+```
+
+`sql/schema.sql` também é disponibilizado separadamente. Reimportar no mesmo banco é rejeitado por duplicidade. Reconstruir o histórico não equivale a retomar uma sessão executável.
+
+## Testes e demonstrações reproduzíveis
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\ruff.exe check .
+.\.venv\Scripts\python.exe scripts\simulate.py
+```
+
+A suíte cobre domínio, FIFO, justiça, limites de SLA, entradas inválidas, rollback de falhas, exportação/importação, sessões isoladas, intervenções, cenários aleatórios e widgets via AppTest. Veja [evidências e limitações](docs/validacao.md).
+
+`scripts/simulate.py` gera `exports/cenarios.json` e um SQL de exemplo. Os resultados representam 40 chegadas simultâneas, semente 42, com capacidade deliberadamente sobrecarregada; não representam desempenho de um restaurante real.
+
+## Apresentação e arquitetura
+
+- [Apresentação final](entregas/final/kitchenflow_apresentacao.pptx)
+- [Relatório técnico final](entregas/final/relatorio_tecnico.md)
+- [Diagrama detalhado e contratos](entregas/final/diagrama_completo.md)
+- [Diagrama visual para abrir no navegador](entregas/final/diagrama_completo.html)
+- [Roteiro de demonstração e arguição](entregas/final/roteiro.md)
+- [Escopo atualizado](docs/escopo.md), [modelagem](docs/modelagem.md), [dicionário](docs/dicionario.md)
+- [Planejamento original em sete etapas](docs/planejamento.md)
+- Materiais de 10/11 em `entregas/primeira_entrega/` são registros históricos, anteriores à conclusão.
+
+## Organização e autoria
+
+`app.py` e `assets/` apresentam os dados; `domain/` define tipos e regras; `queues/` mantém FIFO e política; `services/` coordena decisões e cenários; `audit/` persiste eventos. A interface não substitui a regra do domínio.
+
+Os arquivos enviados para a Etapa 7 foram integrados e revisados. O teste enviado de chegada em t=50 foi corrigido para avançar o motor até esse instante antes da inserção. O acesso privado à conexão SQLite na interface foi substituído por uma API pública de auditoria. Os commits anteriores dos integrantes permanecem no histórico, sem reescrita de autoria. Cada membro deve explicar suas decisões, contratos e testes.
+
+Este é um protótipo acadêmico com apresentação de produto. Não inclui pagamentos, clientes reais, integrações comerciais, múltiplas estações, autenticação ou implantação pública. Esses recursos exigiriam outra fase de produto.

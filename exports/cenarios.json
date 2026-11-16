@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "Padrão",
+    "orders": 40,
+    "seed": 42,
+    "started": 40,
+    "completed": 40,
+    "compliance": 10.0,
+    "mean_wait": 2123.5,
+    "max_wait": 4681
+  },
+  {
+    "scenario": "Preparo lento",
+    "orders": 40,
+    "seed": 42,
+    "started": 40,
+    "completed": 40,
+    "compliance": 7.5,
+    "mean_wait": 4246.0,
+    "max_wait": 9361
+  },
+  {
+    "scenario": "Pausa de 300s",
+    "orders": 40,
+    "seed": 42,
+    "started": 40,
+    "completed": 40,
+    "compliance": 0.0,
+    "mean_wait": 2423.5,
+    "max_wait": 4981
+  }
+]
