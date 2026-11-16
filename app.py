@@ -596,7 +596,6 @@ def main():
     operation, lab, audit, guide = st.tabs(
         ["Operação ao vivo", "Laboratório", "Logs e auditoria", "Como demonstrar"],
         key="workspace",
-        on_change="rerun",
     )
 
     @st.fragment(run_every=1 if st.session_state.auto else None, key="kitchen_live")
@@ -626,9 +625,8 @@ def main():
         live()
     with lab:
         laboratory(engine)
-    if audit.open:
-        with audit:
-            history(engine)
+    with audit:
+        history(engine)
     with guide:
         st.subheader("Da fila à decisão, em poucos passos")
         st.markdown("""1. Em uma sessão nova, carregue **Justiça 3:1** com sete pedidos.

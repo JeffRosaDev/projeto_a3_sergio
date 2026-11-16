@@ -93,12 +93,12 @@ class InterfaceTests(unittest.TestCase):
         self.assertTrue(self.app.error)
         self.assertEqual(self.app.text_input(key="order_id").value, "PED-0001")
 
-    def test_hidden_history_does_not_export_on_each_operation_update(self):
-        """O painel automático não deve regenerar o SQL de uma aba escondida."""
+    def test_history_is_exported_once_per_full_render(self):
+        """Uma execução completa prepara uma única cópia do histórico."""
         logger = self.app.session_state.engine.audit_logger
         with patch.object(logger, "export_sql", wraps=logger.export_sql) as export:
             self.app.run()
-            export.assert_not_called()
+            export.assert_called_once()
 
     def test_audit_tab_includes_events_and_operator_commands(self):
         """A trilha une eventos e ações, com ordem explícita e filtros de texto."""
