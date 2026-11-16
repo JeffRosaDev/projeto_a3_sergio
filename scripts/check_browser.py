@@ -6,6 +6,7 @@ Aceita Streamlit Cloud (iframe) e instalação local; só cria dados fictícios 
 
 import argparse
 import json
+import re
 from pathlib import Path
 import sqlite3
 import time
@@ -181,7 +182,9 @@ def run(url, output):
         app.get_by_role("textbox", name="Buscar ID ou detalhe", exact=True).press(
             "Enter"
         )
-        expect(app.get_by_text("1 de", exact=False)).to_be_visible()
+        expect(app.get_by_text(re.compile(r"^1 de \d+ registros\."))).to_be_visible(
+            timeout=15000
+        )
         with page.expect_download() as download:
             app.get_by_role(
                 "button", name="Exportar auditoria filtrada · JSON", exact=True
