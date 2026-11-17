@@ -88,7 +88,7 @@ Regressão opcional em navegador: instale `playwright` e seu Chromium (`python -
 ## Apresentação e arquitetura
 
 - [Apresentação final](entregas/final/kitchenflow_apresentacao.pptx)
-- [Relatório técnico final](entregas/final/relatorio_tecnico.md)
+- [Relatório técnico final](entregas/final/relatorio_tecnico.md) e [versão Word para entrega](entregas/final/relatorio_tecnico.docx)
 - [Diagrama detalhado e contratos](entregas/final/diagrama_completo.md)
 - [Diagrama visual para abrir no navegador](entregas/final/diagrama_completo.html)
 - [Roteiro de demonstração e arguição](entregas/final/roteiro.md)
