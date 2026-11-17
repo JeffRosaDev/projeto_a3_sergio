@@ -272,53 +272,185 @@ def history(engine):
         key="download_schema",
         on_click="ignore",
     )
-    filter_type = st.selectbox(
-        "Tipo de evento",
-        ["Todos", "ENQUEUED", "SERVICE_STARTED", "PREPARATION_COMPLETED", "CANCELLED"],
-        key="event_filter",
-    )
-    rows = logger.fetch_all()
-    if filter_type != "Todos":
-        rows = [r for r in rows if r["event_type"] == filter_type]
-    st.dataframe(rows[-300:], hide_index=True, width="stretch")
-    st.caption(
-        "A tela mostra até 300 eventos recentes; o download contém todo o histórico."
-    )
-    with st.expander("Alterações de regras e incidentes"):
-        st.dataframe(logger.actions(), hide_index=True, width="stretch")
     st.subheader("Trilha completa em ordem de registro")
+    st.caption(
+        "A sequência reúne eventos da fila e ações da simulação. O segundo simulado é o relógio interno; o horário de registro está em UTC."
+    )
     timeline = logger.timeline()
+    records = json.loads(logger.export_json(timeline))["registros"]
+    total_events = sum(row["entry_kind"] == "event" for row in timeline)
+    st.caption(
+        f"{len(timeline)} registros: {total_events} eventos da fila e "
+        f"{len(timeline) - total_events} ações da simulação."
+    )
+    kind_filter = st.selectbox(
+        "Tipo de registro",
+        ["Todos os registros", "Eventos da fila", "Ações da simulação"],
+        key="audit_kind_filter",
+    )
+    entry_kind = {
+        "Eventos da fila": "event",
+        "Ações da simulação": "action",
+    }.get(kind_filter)
+    operation_labels = {
+        record["operacao"]["codigo"]: record["operacao"]["descricao"]
+        for record in records
+    }
     kinds = st.multiselect(
-        "Operações na auditoria",
-        sorted({r["operation"] for r in timeline}),
+        "Operação",
+        sorted(
+            {
+                row["operation"]
+                for row in timeline
+                if entry_kind is None or row["entry_kind"] == entry_kind
+            }
+        ),
+        format_func=lambda code: f"{operation_labels.get(code, code)} ({code})",
         key="log_operations",
     )
     search = st.text_input(
-        "Buscar ID ou detalhe",
+        "Buscar pedido, ID ou detalhe",
         key="log_search",
-        placeholder="Ex.: PED-0001, remaining_after",
+        placeholder="Ex.: PED-0001, preparo ajustado",
     )
-    filtered = [
-        row
-        for row in timeline
-        if (not kinds or row["operation"] in kinds)
+    filtered_pairs = [
+        (row, record)
+        for row, record in zip(timeline, records)
+        if (entry_kind is None or row["entry_kind"] == entry_kind)
+        and (not kinds or row["operation"] in kinds)
         and (
             not search
-            or search.casefold() in json.dumps(row, ensure_ascii=False).casefold()
+            or search.casefold() in json.dumps(record, ensure_ascii=False).casefold()
         )
     ]
+    filtered = [row for row, _ in filtered_pairs]
+    filtered_records = [record for _, record in filtered_pairs]
     st.caption(
-        f"{len(filtered)} de {len(timeline)} registros. A tabela mostra os últimos 500; a exportação inclui todos os filtrados."
+        f"{len(filtered)} de {len(timeline)} registros encontrados. A lista mostra até 500; o JSON inclui todos os filtrados."
     )
-    st.dataframe(filtered[-500:], hide_index=True, width="stretch")
+    display_rows = []
+    for record in filtered_records[-500:]:
+        is_event = record["tipo_registro"] == "evento_de_fila"
+        if is_event:
+            fila = record["fila"]
+            sla = record["sla"]
+            summary = (
+                f"Fila {fila['tamanho_antes']} → {fila['tamanho_depois']}"
+                + (
+                    f" · espera {sla['espera_segundos']} s"
+                    if sla["espera_segundos"] is not None
+                    else " · espera ainda não medida"
+                )
+                + (
+                    f" · SLA: {sla['resultado']['descricao']}"
+                    if sla["resultado"]
+                    else ""
+                )
+            )
+        else:
+            details = record["detalhes"]
+            summary = (
+                "Parâmetros: " + ", ".join(details)
+                if details
+                else "Sem parâmetros adicionais"
+            )
+        display_rows.append(
+            {
+                "Nº": record["sequencia"],
+                "Tipo": "Evento da fila" if is_event else "Ação da simulação",
+                "Segundo": record["segundo_simulado"],
+                "Horário (UTC)": record["registrado_em_utc"],
+                "Operação": record["operacao"]["descricao"],
+                "Pedido": record["pedido"]["id"] if is_event else "—",
+                "Resumo": summary,
+            }
+        )
+    st.dataframe(display_rows, hide_index=True, width="stretch")
     st.download_button(
         "Exportar auditoria filtrada · JSON",
-        json.dumps(filtered, ensure_ascii=False, indent=2),
+        logger.export_json(
+            filtered,
+            filters={
+                "tipo_registro": kind_filter,
+                "operacoes": kinds or "Todas",
+                "busca": search or None,
+            },
+        ),
         "auditoria.json",
         "application/json",
         on_click="ignore",
         key="download_audit",
     )
+    if not filtered_records:
+        st.info("Nenhum registro corresponde aos filtros. Ajuste a busca para ver os detalhes.")
+        return
+
+    by_sequence = {record["sequencia"]: record for record in filtered_records}
+    sequence = st.selectbox(
+        "Ver detalhes do registro",
+        list(by_sequence),
+        index=len(by_sequence) - 1,
+        format_func=lambda number: (
+            f"#{number:05d} · {by_sequence[number]['operacao']['descricao']}"
+        ),
+        key="audit_selected_sequence",
+    )
+    selected = by_sequence[sequence]
+    st.markdown(
+        f"**Registro #{sequence:05d} — {selected['operacao']['descricao']} "
+        f"({selected['operacao']['codigo']})**"
+    )
+    st.caption(
+        f"ID: {selected['id_registro']} · Segundo simulado: "
+        f"{selected['segundo_simulado']} · Gravado em UTC: "
+        f"{selected['registrado_em_utc']}"
+    )
+    if selected["tipo_registro"] == "evento_de_fila":
+        pedido = selected["pedido"]
+        fila = selected["fila"]
+        sla = selected["sla"]
+        st.write(
+            f"**Pedido:** {pedido['id']} · Canal: {pedido['canal']['descricao']} "
+            f"({pedido['canal']['codigo']}) · Prioridade: "
+            f"{pedido['prioridade']['descricao']} ({pedido['prioridade']['codigo']})"
+        )
+        st.write(
+            f"**Fila:** {fila['tamanho_antes']} antes → {fila['tamanho_depois']} "
+            "depois do evento."
+        )
+        st.write("**Pedidos aguardando após o evento, em ordem:**")
+        st.code(
+            "\n".join(
+                f"{position}. {ticket_id}"
+                for position, ticket_id in enumerate(
+                    fila["pedidos_aguardando"], start=1
+                )
+            )
+            or "Fila vazia",
+            language=None,
+        )
+        wait = (
+            f"{sla['espera_segundos']} s"
+            if sla["espera_segundos"] is not None
+            else "ainda não medida"
+        )
+        result = (
+            f"{sla['resultado']['descricao']} ({sla['resultado']['codigo']})"
+            if sla["resultado"]
+            else "ainda não aplicável"
+        )
+        st.write(
+            f"**SLA de espera até o início do preparo:** espera {wait} · "
+            f"meta {sla['meta_segundos']} s · resultado {result}."
+        )
+    else:
+        st.write("**Parâmetros registrados para esta ação:**")
+        if selected["detalhes"]:
+            st.json(selected["detalhes"])
+        else:
+            st.write("Sem parâmetros adicionais.")
+    with st.expander("Ver registro completo em JSON"):
+        st.json(selected)
 
 
 def dashboard(engine):

@@ -36,6 +36,7 @@ def run():
             )
             if name == "Padrão":
                 engine.audit_logger.export_sql(output / "logs.sql")
+                engine.audit_logger.export_json(output_path=output / "auditoria.json")
         finally:
             engine.audit_logger.close()
     (output / "cenarios.json").write_text(

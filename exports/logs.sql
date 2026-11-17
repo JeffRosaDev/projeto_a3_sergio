@@ -1,151 +1,3845 @@
--- KitchenFlow: importar em banco vazio.
+-- KitchenFlow | Exportação completa da auditoria | SQLite
+-- Importe em um banco vazio. O schema cria as tabelas e protege o histórico.
+-- Cada bloco INSERT corresponde a um registro da trilha, em ordem global.
 
+-- SCHEMA: tabelas, sequenciamento automático e proteção append-only.
+-- KitchenFlow | Schema da auditoria | SQLite
+-- O histórico é append-only: os triggers abaixo bloqueiam UPDATE e DELETE.
+
+-- Um registro por mudança no estado de um pedido ou da fila.
 CREATE TABLE IF NOT EXISTS queue_events (
- event_id TEXT PRIMARY KEY, ticket_id TEXT NOT NULL, event_type TEXT NOT NULL,
- simulated_second INTEGER NOT NULL CHECK(simulated_second >= 0),
- channel TEXT NOT NULL, priority TEXT NOT NULL,
- queue_size_before INTEGER NOT NULL, queue_size_after INTEGER NOT NULL,
- queue_snapshot TEXT NOT NULL, wait_seconds INTEGER, sla_target_seconds INTEGER,
- sla_status TEXT, recorded_at TEXT NOT NULL DEFAULT (datetime('now')));
-CREATE TABLE IF NOT EXISTS simulation_actions (
- action_id TEXT PRIMARY KEY, simulated_second INTEGER NOT NULL,
- action TEXT NOT NULL, details TEXT NOT NULL,
- recorded_at TEXT NOT NULL DEFAULT (datetime('now')));
-CREATE TABLE IF NOT EXISTS audit_sequence (
- sequence INTEGER PRIMARY KEY AUTOINCREMENT,
- entry_id TEXT NOT NULL UNIQUE, entry_kind TEXT NOT NULL);
-CREATE TRIGGER IF NOT EXISTS event_sequence AFTER INSERT ON queue_events
- BEGIN INSERT INTO audit_sequence(entry_id,entry_kind) VALUES(NEW.event_id,'event'); END;
-CREATE TRIGGER IF NOT EXISTS action_sequence AFTER INSERT ON simulation_actions
- BEGIN INSERT INTO audit_sequence(entry_id,entry_kind) VALUES(NEW.action_id,'action'); END;
-CREATE TRIGGER IF NOT EXISTS queue_events_no_UPDATE BEFORE UPDATE ON queue_events BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;
-CREATE TRIGGER IF NOT EXISTS queue_events_no_DELETE BEFORE DELETE ON queue_events BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;
-CREATE TRIGGER IF NOT EXISTS simulation_actions_no_UPDATE BEFORE UPDATE ON simulation_actions BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;
-CREATE TRIGGER IF NOT EXISTS simulation_actions_no_DELETE BEFORE DELETE ON simulation_actions BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;
-CREATE TRIGGER IF NOT EXISTS audit_sequence_no_UPDATE BEFORE UPDATE ON audit_sequence BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;
-CREATE TRIGGER IF NOT EXISTS audit_sequence_no_DELETE BEFORE DELETE ON audit_sequence BEGIN SELECT RAISE(ABORT, 'Historico append-only'); END;
+    event_id            TEXT PRIMARY KEY, -- Identificador único do evento.
+    ticket_id           TEXT NOT NULL, -- Identificador do pedido.
+    event_type          TEXT NOT NULL, -- ENQUEUED, SERVICE_STARTED etc.
+    simulated_second    INTEGER NOT NULL CHECK (simulated_second >= 0), -- Instante simulado.
+    channel             TEXT NOT NULL, -- DELIVERY, PICKUP ou COUNTER.
+    priority            TEXT NOT NULL, -- URGENT ou STANDARD.
+    queue_size_before   INTEGER NOT NULL, -- Tamanho da fila antes do evento.
+    queue_size_after    INTEGER NOT NULL, -- Tamanho da fila depois do evento.
+    queue_snapshot      TEXT NOT NULL, -- IDs aguardando após o evento, em JSON.
+    wait_seconds        INTEGER, -- Espera observada, quando aplicável.
+    sla_target_seconds  INTEGER, -- Meta de espera do canal, em segundos.
+    sla_status          TEXT, -- WAITING, AT_RISK, MET, BREACHED ou NULL.
+    recorded_at         TEXT NOT NULL DEFAULT (datetime('now')) -- Data/hora UTC.
+);
 
+-- Um registro por comando, ajuste de regra ou incidente da simulação.
+CREATE TABLE IF NOT EXISTS simulation_actions (
+    action_id         TEXT PRIMARY KEY, -- Identificador único da ação.
+    simulated_second  INTEGER NOT NULL, -- Instante simulado da ação.
+    action            TEXT NOT NULL, -- Nome do comando/intervenção.
+    details           TEXT NOT NULL, -- Parâmetros da ação em JSON.
+    recorded_at       TEXT NOT NULL DEFAULT (datetime('now')) -- Data/hora UTC.
+);
+
+-- Numera eventos e ações juntos, na ordem em que foram gravados.
+CREATE TABLE IF NOT EXISTS audit_sequence (
+    sequence    INTEGER PRIMARY KEY AUTOINCREMENT, -- Ordem global da auditoria.
+    entry_id    TEXT NOT NULL UNIQUE, -- ID presente na tabela do tipo indicado.
+    entry_kind  TEXT NOT NULL -- event para fila; action para intervenção.
+);
+
+CREATE TRIGGER IF NOT EXISTS event_sequence
+AFTER INSERT ON queue_events
+BEGIN
+    INSERT INTO audit_sequence (entry_id, entry_kind)
+    VALUES (NEW.event_id, 'event');
+END;
+
+CREATE TRIGGER IF NOT EXISTS action_sequence
+AFTER INSERT ON simulation_actions
+BEGIN
+    INSERT INTO audit_sequence (entry_id, entry_kind)
+    VALUES (NEW.action_id, 'action');
+END;
+
+CREATE TRIGGER IF NOT EXISTS queue_events_no_UPDATE
+BEFORE UPDATE ON queue_events
+BEGIN
+    SELECT RAISE(ABORT, 'Historico append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS queue_events_no_DELETE
+BEFORE DELETE ON queue_events
+BEGIN
+    SELECT RAISE(ABORT, 'Historico append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS simulation_actions_no_UPDATE
+BEFORE UPDATE ON simulation_actions
+BEGIN
+    SELECT RAISE(ABORT, 'Historico append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS simulation_actions_no_DELETE
+BEFORE DELETE ON simulation_actions
+BEGIN
+    SELECT RAISE(ABORT, 'Historico append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS audit_sequence_no_UPDATE
+BEFORE UPDATE ON audit_sequence
+BEGIN
+    SELECT RAISE(ABORT, 'Historico append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS audit_sequence_no_DELETE
+BEFORE DELETE ON audit_sequence
+BEGIN
+    SELECT RAISE(ABORT, 'Historico append-only');
+END;
+
+-- DADOS: eventos e ações ordenados pela sequência original.
 BEGIN TRANSACTION;
-INSERT INTO simulation_actions (action_id,simulated_second,action,details,recorded_at) VALUES ('4c8d4624aae84a2090ee1e586d9fb758',0,'CONFIG_INITIAL','{"sla": {"DELIVERY": 180, "PICKUP": 300, "COUNTER": 480}, "preparo": {"SIMPLE": 60, "MEDIUM": 120, "COMPLEX": 180}, "cota": 3, "risco": 0.8, "delivery_urgente": true}','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('67b57441-b33b-46f2-8308-bc54cdb2dfb8','PED-0001','ENQUEUED',0,'COUNTER','STANDARD',0,1,'["PED-0001"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('0647ac91-fd9b-4a82-9705-5b20981869d3','PED-0002','ENQUEUED',0,'PICKUP','STANDARD',1,2,'["PED-0001", "PED-0002"]',NULL,300,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('db33e400-0b40-45f8-8711-136e1e179d42','PED-0003','ENQUEUED',0,'DELIVERY','URGENT',2,3,'["PED-0003", "PED-0001", "PED-0002"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('0415c22d-c392-49cf-abd5-2c931b770395','PED-0004','ENQUEUED',0,'COUNTER','STANDARD',3,4,'["PED-0003", "PED-0001", "PED-0002", "PED-0004"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('eece4c7b-8e78-4738-8eca-78115069b990','PED-0005','ENQUEUED',0,'COUNTER','STANDARD',4,5,'["PED-0003", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('ad6e2a31-2a16-4726-a7d8-47d1e55e68b8','PED-0006','ENQUEUED',0,'DELIVERY','URGENT',5,6,'["PED-0003", "PED-0006", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('c5431fc1-6b7a-44c5-929a-9fb2c4dcbd28','PED-0007','ENQUEUED',0,'DELIVERY','URGENT',6,7,'["PED-0003", "PED-0006", "PED-0007", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f47820d2-4c0a-448e-8807-0241d6973063','PED-0008','ENQUEUED',0,'DELIVERY','URGENT',7,8,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('0242fa09-7963-48bd-a4f7-0c8e0eb5aa52','PED-0009','ENQUEUED',0,'COUNTER','STANDARD',8,9,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('faf631df-20a6-4607-b56f-a69115e17b7d','PED-0010','ENQUEUED',0,'DELIVERY','URGENT',9,10,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('d7f2494a-c72f-446c-b835-183f4305de96','PED-0011','ENQUEUED',0,'PICKUP','STANDARD',10,11,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011"]',NULL,300,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('37a28662-2cf6-4454-a2d7-48687f31f896','PED-0012','ENQUEUED',0,'DELIVERY','URGENT',11,12,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('901181b9-e170-4ef0-93d9-e8a983b6b744','PED-0013','ENQUEUED',0,'DELIVERY','URGENT',12,13,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('2b39f52b-bae4-495e-8128-0f0dc68dc31d','PED-0014','ENQUEUED',0,'COUNTER','STANDARD',13,14,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('ce4d24a8-eaa0-45a4-aacf-3a8a6bd9401f','PED-0015','ENQUEUED',0,'DELIVERY','URGENT',14,15,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('d38c42cc-9acd-4655-a4f0-d70dd898c518','PED-0016','ENQUEUED',0,'DELIVERY','URGENT',15,16,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('75a70cbf-27ec-4890-b308-aa5f2a9fdf1a','PED-0017','ENQUEUED',0,'DELIVERY','URGENT',16,17,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4781ca34-58ed-4a6a-877e-8201a413c363','PED-0018','ENQUEUED',0,'DELIVERY','URGENT',17,18,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('6f608773-7342-45c8-9356-53d9c3b8919b','PED-0019','ENQUEUED',0,'DELIVERY','URGENT',18,19,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('191b85e4-6eda-45e2-b955-7e2794cbbc3c','PED-0020','ENQUEUED',0,'DELIVERY','URGENT',19,20,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('00e0b320-2aae-4759-86ff-6a3e79381c59','PED-0021','ENQUEUED',0,'PICKUP','STANDARD',20,21,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021"]',NULL,300,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('ea8e3db0-9fc8-4687-aee3-1f33526e3b3c','PED-0022','ENQUEUED',0,'PICKUP','STANDARD',21,22,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',NULL,300,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('7a11fee9-23a5-45e0-bee2-0a124ef4f83c','PED-0023','ENQUEUED',0,'DELIVERY','URGENT',22,23,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('59f307d5-fd1a-46b6-b2c7-04ee3f8d3502','PED-0024','ENQUEUED',0,'DELIVERY','URGENT',23,24,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('b0dc5174-fbb2-4c68-aa43-d4844289f0e2','PED-0025','ENQUEUED',0,'DELIVERY','URGENT',24,25,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('1a00b7c5-7f68-4963-a9b7-555faf0dd6c3','PED-0026','ENQUEUED',0,'PICKUP','STANDARD',25,26,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026"]',NULL,300,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4fa98f10-0339-4265-9c84-5f27bba9a05e','PED-0027','ENQUEUED',0,'DELIVERY','URGENT',26,27,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f1ed596d-ab3c-4191-ade7-aa73c21888f9','PED-0028','ENQUEUED',0,'DELIVERY','URGENT',27,28,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4d9bf2cd-60ce-44c8-814e-9794b67e2693','PED-0029','ENQUEUED',0,'COUNTER','STANDARD',28,29,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('003518df-e6ab-4dfc-862b-2439feafc767','PED-0030','ENQUEUED',0,'DELIVERY','URGENT',29,30,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('9eaab7ec-31c6-46e7-82a6-795356c79645','PED-0031','ENQUEUED',0,'DELIVERY','URGENT',30,31,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4190dace-df05-457d-bb28-16192961e112','PED-0032','ENQUEUED',0,'DELIVERY','URGENT',31,32,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('8ae3a311-5db7-4a4f-830b-577096719db9','PED-0033','ENQUEUED',0,'PICKUP','STANDARD',32,33,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',NULL,300,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('efe531ab-5402-438e-8a23-b7b0e9b2dc93','PED-0034','ENQUEUED',0,'DELIVERY','URGENT',33,34,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f09f0928-2367-4af3-bf99-e39b7560c973','PED-0035','ENQUEUED',0,'DELIVERY','URGENT',34,35,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('9f305403-2518-476f-a6f6-df707355dab5','PED-0036','ENQUEUED',0,'DELIVERY','URGENT',35,36,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('444b9018-4a60-4278-8a84-9856027ff943','PED-0037','ENQUEUED',0,'COUNTER','STANDARD',36,37,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('60b508d7-384c-4ad4-8af8-c382fc524e92','PED-0038','ENQUEUED',0,'COUNTER','STANDARD',37,38,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('476212ef-e06f-47ca-ba05-10e88e760761','PED-0039','ENQUEUED',0,'COUNTER','STANDARD',38,39,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',NULL,480,NULL,'2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('b4ba2006-5001-4a7f-8fdd-817d6ae27d41','PED-0040','ENQUEUED',0,'DELIVERY','URGENT',39,40,'["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',NULL,180,NULL,'2026-11-15 22:55:53');
-INSERT INTO simulation_actions (action_id,simulated_second,action,details,recorded_at) VALUES ('9204bd82bdc546e9a6a983f19561e29d',0,'BURST','{"count": 40, "seed": 42, "urgent_percent": 60, "scenario": "Aleatório"}','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('639acb2f-3943-4fc5-91fb-5a73b77f459a','PED-0003','SERVICE_STARTED',1,'DELIVERY','URGENT',40,39,'["PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1,180,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('30904ac5-3d1c-4e29-9274-0d69961d7328','PED-0003','PREPARATION_COMPLETED',61,'DELIVERY','URGENT',39,39,'["PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1,180,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('8eadb220-9f61-4068-9fba-9ee1a6772a1e','PED-0006','SERVICE_STARTED',61,'DELIVERY','URGENT',39,38,'["PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',61,180,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('fb797fd2-ca6d-4e46-89b8-bf14ad4b2eac','PED-0006','PREPARATION_COMPLETED',121,'DELIVERY','URGENT',38,38,'["PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',61,180,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('c3a010f1-bacb-42ed-a0b3-c312891f67d8','PED-0007','SERVICE_STARTED',121,'DELIVERY','URGENT',38,37,'["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',121,180,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4a3b6a82-54af-4b8c-bcd4-e6018aa3188c','PED-0007','PREPARATION_COMPLETED',181,'DELIVERY','URGENT',37,37,'["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',121,180,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('63811ac2-0c7a-46a9-80e1-7c34f0a0d024','PED-0001','SERVICE_STARTED',181,'COUNTER','STANDARD',37,36,'["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',181,480,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('c7b05f2e-9d16-4569-ba24-0df3fcc196eb','PED-0001','PREPARATION_COMPLETED',241,'COUNTER','STANDARD',36,36,'["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',181,480,'MET','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('2f546f52-bbbb-48e3-890e-1abae7503a50','PED-0008','SERVICE_STARTED',241,'DELIVERY','URGENT',36,35,'["PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',241,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('41ea76b3-0bd3-471f-9e49-b09e9657d5d5','PED-0008','PREPARATION_COMPLETED',301,'DELIVERY','URGENT',35,35,'["PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',241,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('5a8b182f-4f69-4cae-92bf-027b8daa3741','PED-0010','SERVICE_STARTED',301,'DELIVERY','URGENT',35,34,'["PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',301,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('86cb74b5-3f1b-42f5-bd03-ad55ce08ee3c','PED-0010','PREPARATION_COMPLETED',481,'DELIVERY','URGENT',34,34,'["PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',301,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('c688d09a-ede7-4c0a-8254-35cf6a7e8629','PED-0012','SERVICE_STARTED',481,'DELIVERY','URGENT',34,33,'["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',481,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('029b9aeb-59e6-4d08-9413-cd1fab73db0c','PED-0012','PREPARATION_COMPLETED',661,'DELIVERY','URGENT',33,33,'["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',481,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('38c5c225-58e1-405a-a78d-0049f682c9f9','PED-0002','SERVICE_STARTED',661,'PICKUP','STANDARD',33,32,'["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',661,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('8f0847fe-8105-414a-ad39-77786592df0f','PED-0002','PREPARATION_COMPLETED',721,'PICKUP','STANDARD',32,32,'["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',661,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('1b62a020-39f5-4acb-bb50-ceb8c23a1670','PED-0013','SERVICE_STARTED',721,'DELIVERY','URGENT',32,31,'["PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',721,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('5e070f66-b332-4aac-9c87-d7ae7f04c21b','PED-0013','PREPARATION_COMPLETED',781,'DELIVERY','URGENT',31,31,'["PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',721,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('9f605a6a-fbbb-4785-9d80-3a68820af77e','PED-0015','SERVICE_STARTED',781,'DELIVERY','URGENT',31,30,'["PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',781,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f95d0a6a-a74f-400d-9406-8896c357b9b6','PED-0015','PREPARATION_COMPLETED',901,'DELIVERY','URGENT',30,30,'["PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',781,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('3f660952-46d1-43ac-85bf-492a3d504ba2','PED-0016','SERVICE_STARTED',901,'DELIVERY','URGENT',30,29,'["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',901,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('829fec97-5ff6-4f38-8445-be7253a5560d','PED-0016','PREPARATION_COMPLETED',961,'DELIVERY','URGENT',29,29,'["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',901,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f72a492d-7181-4eb8-bcbf-76ae997c7d1f','PED-0004','SERVICE_STARTED',961,'COUNTER','STANDARD',29,28,'["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',961,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('74397edf-e0c0-422a-8927-8ec26b71f509','PED-0004','PREPARATION_COMPLETED',1141,'COUNTER','STANDARD',28,28,'["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',961,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('ce6ac497-0c49-4681-9b27-7cdd539ec6e0','PED-0017','SERVICE_STARTED',1141,'DELIVERY','URGENT',28,27,'["PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1141,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('373fe627-3512-4d2d-979d-ffefb54babe1','PED-0017','PREPARATION_COMPLETED',1261,'DELIVERY','URGENT',27,27,'["PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1141,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('e7dba436-6d53-45c3-9936-167750e02932','PED-0018','SERVICE_STARTED',1261,'DELIVERY','URGENT',27,26,'["PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1261,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('d69e4ede-fc94-452b-8115-a1e73b8b11c9','PED-0018','PREPARATION_COMPLETED',1321,'DELIVERY','URGENT',26,26,'["PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1261,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('b87ce335-81a2-443e-bfde-a8d362b822da','PED-0019','SERVICE_STARTED',1321,'DELIVERY','URGENT',26,25,'["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1321,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('d3010e46-c146-4239-8e8f-0dbe15c3480a','PED-0019','PREPARATION_COMPLETED',1381,'DELIVERY','URGENT',25,25,'["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1321,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('b9093f7b-609d-4c55-bb81-c1a99c0392e8','PED-0005','SERVICE_STARTED',1381,'COUNTER','STANDARD',25,24,'["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1381,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('39950e00-63e9-4fd1-a046-05a53dca7518','PED-0005','PREPARATION_COMPLETED',1561,'COUNTER','STANDARD',24,24,'["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1381,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('012e8369-beed-4054-8335-79f7b57503d8','PED-0020','SERVICE_STARTED',1561,'DELIVERY','URGENT',24,23,'["PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1561,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4f702d3e-d6da-4b85-ba55-461b24d67498','PED-0020','PREPARATION_COMPLETED',1681,'DELIVERY','URGENT',23,23,'["PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1561,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('48c9720f-b279-41de-af04-3cb10e18882d','PED-0023','SERVICE_STARTED',1681,'DELIVERY','URGENT',23,22,'["PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1681,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('d8fe5273-6eae-4578-8be6-1532a13934c0','PED-0023','PREPARATION_COMPLETED',1801,'DELIVERY','URGENT',22,22,'["PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1681,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('5dfbb3d5-752a-4004-98bc-a8b50d1a919e','PED-0024','SERVICE_STARTED',1801,'DELIVERY','URGENT',22,21,'["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1801,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('36d9f909-94bf-40aa-aeb6-07b9eb8ddecb','PED-0024','PREPARATION_COMPLETED',1981,'DELIVERY','URGENT',21,21,'["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1801,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('940b9429-d9f3-4d17-bbc9-4f68e7ce72cd','PED-0009','SERVICE_STARTED',1981,'COUNTER','STANDARD',21,20,'["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1981,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f8eab571-6964-4cbe-858e-6b13e0c574ad','PED-0009','PREPARATION_COMPLETED',2161,'COUNTER','STANDARD',20,20,'["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',1981,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f82dd807-3880-41ad-a61b-4a2380bd6e05','PED-0025','SERVICE_STARTED',2161,'DELIVERY','URGENT',20,19,'["PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2161,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('95c913ee-4c00-4d3e-a153-b1083ef5ae70','PED-0025','PREPARATION_COMPLETED',2341,'DELIVERY','URGENT',19,19,'["PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2161,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('6a4ada10-298e-4ce9-b7af-4fbe75c8985c','PED-0027','SERVICE_STARTED',2341,'DELIVERY','URGENT',19,18,'["PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2341,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('a6f87b37-1638-499d-98b3-2db07b042c3a','PED-0027','PREPARATION_COMPLETED',2521,'DELIVERY','URGENT',18,18,'["PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2341,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('1e75e9e9-ae63-4c61-ae95-f177b9aacc10','PED-0028','SERVICE_STARTED',2521,'DELIVERY','URGENT',18,17,'["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2521,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('ce7fae14-bfea-47f4-90dc-458b1fea91be','PED-0028','PREPARATION_COMPLETED',2581,'DELIVERY','URGENT',17,17,'["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2521,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('7ee29e42-5fea-4146-8d64-e534db32db8d','PED-0011','SERVICE_STARTED',2581,'PICKUP','STANDARD',17,16,'["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2581,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('620b9996-0bdf-450a-b7b7-35caac159b1d','PED-0011','PREPARATION_COMPLETED',2641,'PICKUP','STANDARD',16,16,'["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2581,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('76cfa5ba-687c-4715-8c7a-c5a8ea4d30f8','PED-0030','SERVICE_STARTED',2641,'DELIVERY','URGENT',16,15,'["PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2641,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('e496193d-618f-4536-88eb-87df25ac0f46','PED-0030','PREPARATION_COMPLETED',2701,'DELIVERY','URGENT',15,15,'["PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2641,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('7d03ddd5-ce05-4365-bf7e-e40872055cff','PED-0031','SERVICE_STARTED',2701,'DELIVERY','URGENT',15,14,'["PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2701,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4555f202-d8fe-488b-91f8-828308fdd31e','PED-0031','PREPARATION_COMPLETED',2821,'DELIVERY','URGENT',14,14,'["PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2701,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('50111481-288b-452d-8eb3-5fdeb8f060db','PED-0032','SERVICE_STARTED',2821,'DELIVERY','URGENT',14,13,'["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2821,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f0d51ec0-8708-4324-a137-ac5df903780b','PED-0032','PREPARATION_COMPLETED',2941,'DELIVERY','URGENT',13,13,'["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2821,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('a5ee064b-5d22-43e9-a05c-59078efb43c7','PED-0014','SERVICE_STARTED',2941,'COUNTER','STANDARD',13,12,'["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2941,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('ab9cc4bf-af31-4eca-8fbd-fcd5d650ac93','PED-0014','PREPARATION_COMPLETED',3121,'COUNTER','STANDARD',12,12,'["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',2941,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('c8799cf6-4bcf-45a8-8110-71f3c87ab929','PED-0034','SERVICE_STARTED',3121,'DELIVERY','URGENT',12,11,'["PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3121,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('9eb8817f-c24d-4e28-bc08-0cec2636134e','PED-0034','PREPARATION_COMPLETED',3241,'DELIVERY','URGENT',11,11,'["PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3121,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('767277b6-1421-4718-899c-57ff104ddcc6','PED-0035','SERVICE_STARTED',3241,'DELIVERY','URGENT',11,10,'["PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3241,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('940d929e-99f4-4d24-bc91-96f26d46d16b','PED-0035','PREPARATION_COMPLETED',3421,'DELIVERY','URGENT',10,10,'["PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3241,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('212e1095-4312-471a-9905-b302d1c1265b','PED-0036','SERVICE_STARTED',3421,'DELIVERY','URGENT',10,9,'["PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3421,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4cdfca9f-25ca-404e-9b25-b3bfca248f7e','PED-0036','PREPARATION_COMPLETED',3601,'DELIVERY','URGENT',9,9,'["PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3421,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('17e8b4a0-320f-402d-ae7a-4ff0bf13183c','PED-0021','SERVICE_STARTED',3601,'PICKUP','STANDARD',9,8,'["PED-0040", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3601,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('4f29b666-3ff6-4eb2-b66b-3cc38202e418','PED-0021','PREPARATION_COMPLETED',3661,'PICKUP','STANDARD',8,8,'["PED-0040", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3601,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('e30f1f8c-1de1-4294-b8bc-2fd7f2688d83','PED-0040','SERVICE_STARTED',3661,'DELIVERY','URGENT',8,7,'["PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3661,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('bd6c484e-317f-4675-9da6-2c12f1e88dc7','PED-0040','PREPARATION_COMPLETED',3781,'DELIVERY','URGENT',7,7,'["PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3661,180,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('0019fb9f-6076-4edd-a0c4-110b11e6bfe7','PED-0022','SERVICE_STARTED',3781,'PICKUP','STANDARD',7,6,'["PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3781,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('a91d6066-9d32-4a2b-9790-245ce25395f7','PED-0022','PREPARATION_COMPLETED',3961,'PICKUP','STANDARD',6,6,'["PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3781,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('685eaff2-e82d-4622-aaf5-5e4217baf1a5','PED-0026','SERVICE_STARTED',3961,'PICKUP','STANDARD',6,5,'["PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3961,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('df34f971-67b3-4649-9839-8d15a9023f5f','PED-0026','PREPARATION_COMPLETED',4141,'PICKUP','STANDARD',5,5,'["PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',3961,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('08827d6e-7529-470d-ab9f-92334a0208a4','PED-0029','SERVICE_STARTED',4141,'COUNTER','STANDARD',5,4,'["PED-0033", "PED-0037", "PED-0038", "PED-0039"]',4141,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('f4ffd838-d7e9-46f2-9031-1df83d6a8254','PED-0029','PREPARATION_COMPLETED',4261,'COUNTER','STANDARD',4,4,'["PED-0033", "PED-0037", "PED-0038", "PED-0039"]',4141,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('1967cc6f-b5df-4059-a1ac-9d2de794c348','PED-0033','SERVICE_STARTED',4261,'PICKUP','STANDARD',4,3,'["PED-0037", "PED-0038", "PED-0039"]',4261,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('3aa41437-39d6-4926-ae4c-6e7e24c7e768','PED-0033','PREPARATION_COMPLETED',4321,'PICKUP','STANDARD',3,3,'["PED-0037", "PED-0038", "PED-0039"]',4261,300,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('85221e01-f536-4522-8b26-47c37ea1ea08','PED-0037','SERVICE_STARTED',4321,'COUNTER','STANDARD',3,2,'["PED-0038", "PED-0039"]',4321,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('d2398971-fc8b-447f-9fda-d2d6fc1e1dea','PED-0037','PREPARATION_COMPLETED',4501,'COUNTER','STANDARD',2,2,'["PED-0038", "PED-0039"]',4321,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('cd4e0dd8-6b51-4a2f-8203-eff626c45e7b','PED-0038','SERVICE_STARTED',4501,'COUNTER','STANDARD',2,1,'["PED-0039"]',4501,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('c4a81cda-8330-4371-9ac5-8473bfaeca4d','PED-0038','PREPARATION_COMPLETED',4681,'COUNTER','STANDARD',1,1,'["PED-0039"]',4501,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('2a7fdc68-a5c2-4155-ab19-9c9cf38f07b6','PED-0039','SERVICE_STARTED',4681,'COUNTER','STANDARD',1,0,'[]',4681,480,'BREACHED','2026-11-15 22:55:53');
-INSERT INTO queue_events (event_id,ticket_id,event_type,simulated_second,channel,priority,queue_size_before,queue_size_after,queue_snapshot,wait_seconds,sla_target_seconds,sla_status,recorded_at) VALUES ('46edca40-b868-4f00-b37c-7ae05c36db00','PED-0039','PREPARATION_COMPLETED',4741,'COUNTER','STANDARD',0,0,'[]',4681,480,'BREACHED','2026-11-15 22:55:53');
+
+-- Registro de auditoria #00001 | ação | CONFIG_INITIAL
+INSERT INTO simulation_actions (
+    action_id,
+    simulated_second,
+    action,
+    details,
+    recorded_at
+) VALUES (
+    'c899fc65041c4584815531f246193601',
+    0,
+    'CONFIG_INITIAL',
+    '{"sla": {"DELIVERY": 180, "PICKUP": 300, "COUNTER": 480}, "preparo": {"SIMPLE": 60, "MEDIUM": 120, "COMPLEX": 180}, "cota": 3, "risco": 0.8, "delivery_urgente": true}',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00002 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '881dcaef-e210-4aa3-ab12-a6ba6f4b53ee',
+    'PED-0001',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    0,
+    1,
+    '["PED-0001"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00003 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'dfedf35b-137a-4f2b-8b4e-193be0cc6c6c',
+    'PED-0002',
+    'ENQUEUED',
+    0,
+    'PICKUP',
+    'STANDARD',
+    1,
+    2,
+    '["PED-0001", "PED-0002"]',
+    NULL,
+    300,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00004 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '5139dcc6-8faa-4da2-b099-a6b80fc91a61',
+    'PED-0003',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    2,
+    3,
+    '["PED-0003", "PED-0001", "PED-0002"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00005 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'e84b33fa-242d-4a3a-b064-bc567c9a983f',
+    'PED-0004',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    3,
+    4,
+    '["PED-0003", "PED-0001", "PED-0002", "PED-0004"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00006 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '27d9f93b-a7d2-43d1-b8d7-cc3736b1f17e',
+    'PED-0005',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    4,
+    5,
+    '["PED-0003", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00007 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'bf714ad5-4906-4081-8621-12b942a07655',
+    'PED-0006',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    5,
+    6,
+    '["PED-0003", "PED-0006", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00008 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'e442ecbd-649b-4930-a05d-80237377254c',
+    'PED-0007',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    6,
+    7,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00009 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'baf53e51-cd65-4214-be9b-58bfbecd07d0',
+    'PED-0008',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    7,
+    8,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0001", "PED-0002", "PED-0004", "PED-0005"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00010 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '54a7f63b-7cae-4f01-a926-92d0cb95585e',
+    'PED-0009',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    8,
+    9,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00011 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'bd6146f2-d540-441f-b3f1-2cdc21a95953',
+    'PED-0010',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    9,
+    10,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00012 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '17d05d29-b06a-4ef2-9b79-bf6e00e7ee9b',
+    'PED-0011',
+    'ENQUEUED',
+    0,
+    'PICKUP',
+    'STANDARD',
+    10,
+    11,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011"]',
+    NULL,
+    300,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00013 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '526ecff9-3d08-4835-9efe-901b773bc27e',
+    'PED-0012',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    11,
+    12,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00014 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'db5e6b93-da74-46e2-9510-143cba869c14',
+    'PED-0013',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    12,
+    13,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00015 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '93e3d576-e53f-4087-b168-4be774c2dc57',
+    'PED-0014',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    13,
+    14,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00016 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '0f68eba1-7a64-4d29-a9aa-295981efdd24',
+    'PED-0015',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    14,
+    15,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00017 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '00ee94f9-f063-4f93-abbd-f80a904acd31',
+    'PED-0016',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    15,
+    16,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00018 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'e15ae9d0-775f-4931-a59d-db9d2d2d20e6',
+    'PED-0017',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    16,
+    17,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00019 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'ec5b8edc-e67b-4a55-a840-e577bd9c73cc',
+    'PED-0018',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    17,
+    18,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00020 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '969a8099-7227-4dbc-8690-3b92585d1b35',
+    'PED-0019',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    18,
+    19,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00021 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '57a3eb1d-1670-4bcb-a12f-c0153cbb5ac8',
+    'PED-0020',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    19,
+    20,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00022 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '6af7627f-beed-40b5-8d5e-f9be865ff3b7',
+    'PED-0021',
+    'ENQUEUED',
+    0,
+    'PICKUP',
+    'STANDARD',
+    20,
+    21,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021"]',
+    NULL,
+    300,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00023 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'e3c17f38-5bf8-47fe-ae1d-b5eb10c3e8e5',
+    'PED-0022',
+    'ENQUEUED',
+    0,
+    'PICKUP',
+    'STANDARD',
+    21,
+    22,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',
+    NULL,
+    300,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00024 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a8ae3e26-d789-4982-81e6-913c4f0e9922',
+    'PED-0023',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    22,
+    23,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00025 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '837f994b-d9ca-4938-b4d0-93dba3ed6251',
+    'PED-0024',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    23,
+    24,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00026 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '5bd7f078-a6d8-4739-815c-89f92edd58cd',
+    'PED-0025',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    24,
+    25,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00027 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '8c3591f8-3f8c-4d7e-8cc4-9baaa3d87066',
+    'PED-0026',
+    'ENQUEUED',
+    0,
+    'PICKUP',
+    'STANDARD',
+    25,
+    26,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026"]',
+    NULL,
+    300,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00028 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '7d51faf4-83ac-46d9-92e0-4e0e03705223',
+    'PED-0027',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    26,
+    27,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00029 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '9469a2cb-c9fd-4dd4-b0a6-3e5951f5c8b4',
+    'PED-0028',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    27,
+    28,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00030 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '60efc53c-65bc-4df6-98ae-5ae0fe77a11b',
+    'PED-0029',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    28,
+    29,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00031 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '698b5ba8-f7fb-45d0-9ece-2e3c45690453',
+    'PED-0030',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    29,
+    30,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00032 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'bf58bc1a-984d-48af-81ce-aac50b326171',
+    'PED-0031',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    30,
+    31,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00033 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'f4f88d1f-baca-44e4-8fe7-f90e2c8de7fb',
+    'PED-0032',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    31,
+    32,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00034 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '4f296e06-7391-4e11-a522-7ef6de817eb0',
+    'PED-0033',
+    'ENQUEUED',
+    0,
+    'PICKUP',
+    'STANDARD',
+    32,
+    33,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',
+    NULL,
+    300,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00035 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '9194ca35-7749-4ca8-959d-d488b2fd81e5',
+    'PED-0034',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    33,
+    34,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00036 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'ccf21bc0-a6a9-42bc-8b27-76bc3af3390e',
+    'PED-0035',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    34,
+    35,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00037 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'eb60957e-d300-4cf3-a590-c93f0ee2dad3',
+    'PED-0036',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    35,
+    36,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00038 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'cd2bfb5f-fd6a-47e6-abed-fd85993f90e1',
+    'PED-0037',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    36,
+    37,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00039 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '6fce2542-7955-4ce6-9a4b-c8c3b3ce05a0',
+    'PED-0038',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    37,
+    38,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00040 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '11723f6c-c3ee-4c75-a385-e5d69cd0c40b',
+    'PED-0039',
+    'ENQUEUED',
+    0,
+    'COUNTER',
+    'STANDARD',
+    38,
+    39,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    NULL,
+    480,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00041 | evento de fila | ENQUEUED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'fa1fce51-460a-474b-8197-a0fb56e4bdc3',
+    'PED-0040',
+    'ENQUEUED',
+    0,
+    'DELIVERY',
+    'URGENT',
+    39,
+    40,
+    '["PED-0003", "PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    NULL,
+    180,
+    NULL,
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00042 | ação | BURST
+INSERT INTO simulation_actions (
+    action_id,
+    simulated_second,
+    action,
+    details,
+    recorded_at
+) VALUES (
+    '02faf71b370d4d69bd62947fbae0efc6',
+    0,
+    'BURST',
+    '{"count": 40, "seed": 42, "urgent_percent": 60, "scenario": "Aleatório"}',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00043 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '8c6104fe-a1fe-470d-9463-31a9827116cc',
+    'PED-0003',
+    'SERVICE_STARTED',
+    1,
+    'DELIVERY',
+    'URGENT',
+    40,
+    39,
+    '["PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1,
+    180,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00044 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '792ca58c-af63-4f4d-ae85-c85a8d540a79',
+    'PED-0003',
+    'PREPARATION_COMPLETED',
+    61,
+    'DELIVERY',
+    'URGENT',
+    39,
+    39,
+    '["PED-0006", "PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1,
+    180,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00045 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '4677c4ba-3ae9-4ab6-b41b-e67515dab544',
+    'PED-0006',
+    'SERVICE_STARTED',
+    61,
+    'DELIVERY',
+    'URGENT',
+    39,
+    38,
+    '["PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    61,
+    180,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00046 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'd64da48d-720f-4f27-89c3-1129ed85bb48',
+    'PED-0006',
+    'PREPARATION_COMPLETED',
+    121,
+    'DELIVERY',
+    'URGENT',
+    38,
+    38,
+    '["PED-0007", "PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    61,
+    180,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00047 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '46a97950-5694-49bf-9c02-8c3772cf5e8a',
+    'PED-0007',
+    'SERVICE_STARTED',
+    121,
+    'DELIVERY',
+    'URGENT',
+    38,
+    37,
+    '["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    121,
+    180,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00048 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '65aa468b-cf80-47c4-8d25-8e295907790b',
+    'PED-0007',
+    'PREPARATION_COMPLETED',
+    181,
+    'DELIVERY',
+    'URGENT',
+    37,
+    37,
+    '["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0001", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    121,
+    180,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00049 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '338b7a03-f69d-4423-9b7f-122481ce5f4d',
+    'PED-0001',
+    'SERVICE_STARTED',
+    181,
+    'COUNTER',
+    'STANDARD',
+    37,
+    36,
+    '["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    181,
+    480,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00050 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '4db2b8b3-5137-4ce8-9c0e-ccf00fbd8861',
+    'PED-0001',
+    'PREPARATION_COMPLETED',
+    241,
+    'COUNTER',
+    'STANDARD',
+    36,
+    36,
+    '["PED-0008", "PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    181,
+    480,
+    'MET',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00051 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '6baa713a-2d36-42af-8388-0a1be8f64133',
+    'PED-0008',
+    'SERVICE_STARTED',
+    241,
+    'DELIVERY',
+    'URGENT',
+    36,
+    35,
+    '["PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    241,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00052 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '212b7b04-1745-40aa-86d4-ac27b85d592d',
+    'PED-0008',
+    'PREPARATION_COMPLETED',
+    301,
+    'DELIVERY',
+    'URGENT',
+    35,
+    35,
+    '["PED-0010", "PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    241,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00053 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'aca94ccb-b93d-4abd-988b-1a1995109ca2',
+    'PED-0010',
+    'SERVICE_STARTED',
+    301,
+    'DELIVERY',
+    'URGENT',
+    35,
+    34,
+    '["PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    301,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00054 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'fd37ce4c-b0d9-4d5b-8560-579fa04fd233',
+    'PED-0010',
+    'PREPARATION_COMPLETED',
+    481,
+    'DELIVERY',
+    'URGENT',
+    34,
+    34,
+    '["PED-0012", "PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    301,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00055 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '8fe2aa4e-e850-48be-8ae7-c81ba5c183b7',
+    'PED-0012',
+    'SERVICE_STARTED',
+    481,
+    'DELIVERY',
+    'URGENT',
+    34,
+    33,
+    '["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    481,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00056 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'ea591b87-359e-48b9-9aa8-d08334376dda',
+    'PED-0012',
+    'PREPARATION_COMPLETED',
+    661,
+    'DELIVERY',
+    'URGENT',
+    33,
+    33,
+    '["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0002", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    481,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00057 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '87d86f0f-b893-419e-9220-5145e6f07fa0',
+    'PED-0002',
+    'SERVICE_STARTED',
+    661,
+    'PICKUP',
+    'STANDARD',
+    33,
+    32,
+    '["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    661,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00058 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '4580888d-cc14-4fa9-8bfa-2511e342caae',
+    'PED-0002',
+    'PREPARATION_COMPLETED',
+    721,
+    'PICKUP',
+    'STANDARD',
+    32,
+    32,
+    '["PED-0013", "PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    661,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00059 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '11b772c3-ce61-4a36-869b-eedb8093a0fb',
+    'PED-0013',
+    'SERVICE_STARTED',
+    721,
+    'DELIVERY',
+    'URGENT',
+    32,
+    31,
+    '["PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    721,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00060 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'c4b0b486-e10f-4dbb-a5c5-5123fb1c7e0a',
+    'PED-0013',
+    'PREPARATION_COMPLETED',
+    781,
+    'DELIVERY',
+    'URGENT',
+    31,
+    31,
+    '["PED-0015", "PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    721,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00061 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a9f5e863-1bec-46b4-9d88-004d256ff38c',
+    'PED-0015',
+    'SERVICE_STARTED',
+    781,
+    'DELIVERY',
+    'URGENT',
+    31,
+    30,
+    '["PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    781,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00062 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'cc1bb446-a463-4fca-abde-5384c32726c6',
+    'PED-0015',
+    'PREPARATION_COMPLETED',
+    901,
+    'DELIVERY',
+    'URGENT',
+    30,
+    30,
+    '["PED-0016", "PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    781,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00063 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'af210be4-04d1-4ab7-8e4e-b86779fa77e5',
+    'PED-0016',
+    'SERVICE_STARTED',
+    901,
+    'DELIVERY',
+    'URGENT',
+    30,
+    29,
+    '["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    901,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00064 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '7c67194c-5f7b-4b93-ac5c-26a2ad279d8c',
+    'PED-0016',
+    'PREPARATION_COMPLETED',
+    961,
+    'DELIVERY',
+    'URGENT',
+    29,
+    29,
+    '["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0004", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    901,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00065 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'febdb921-2f24-45f8-a77f-fa2b3aab855f',
+    'PED-0004',
+    'SERVICE_STARTED',
+    961,
+    'COUNTER',
+    'STANDARD',
+    29,
+    28,
+    '["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    961,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00066 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '308456f3-164f-41fe-b803-ae4be786788e',
+    'PED-0004',
+    'PREPARATION_COMPLETED',
+    1141,
+    'COUNTER',
+    'STANDARD',
+    28,
+    28,
+    '["PED-0017", "PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    961,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00067 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '92764ac2-f065-4486-9ff5-9e59ea42eb40',
+    'PED-0017',
+    'SERVICE_STARTED',
+    1141,
+    'DELIVERY',
+    'URGENT',
+    28,
+    27,
+    '["PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1141,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00068 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'd83cf83b-84aa-4d4c-90f1-8dce030355f8',
+    'PED-0017',
+    'PREPARATION_COMPLETED',
+    1261,
+    'DELIVERY',
+    'URGENT',
+    27,
+    27,
+    '["PED-0018", "PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1141,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00069 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '0f65e377-478d-46b6-b1d2-d416ae2ad0b4',
+    'PED-0018',
+    'SERVICE_STARTED',
+    1261,
+    'DELIVERY',
+    'URGENT',
+    27,
+    26,
+    '["PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1261,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00070 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '19021b7d-ec76-486f-8c4a-fd1e8c1d7bcb',
+    'PED-0018',
+    'PREPARATION_COMPLETED',
+    1321,
+    'DELIVERY',
+    'URGENT',
+    26,
+    26,
+    '["PED-0019", "PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1261,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00071 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'd4040ea2-3db7-446e-95ad-aa91b07227c0',
+    'PED-0019',
+    'SERVICE_STARTED',
+    1321,
+    'DELIVERY',
+    'URGENT',
+    26,
+    25,
+    '["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1321,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00072 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'fdece181-c2cd-44fe-bbd4-00f2bdc0206f',
+    'PED-0019',
+    'PREPARATION_COMPLETED',
+    1381,
+    'DELIVERY',
+    'URGENT',
+    25,
+    25,
+    '["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0005", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1321,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00073 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a4fc7e66-f6ed-4d80-bdb5-3c953f62f031',
+    'PED-0005',
+    'SERVICE_STARTED',
+    1381,
+    'COUNTER',
+    'STANDARD',
+    25,
+    24,
+    '["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1381,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00074 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '3a8f19e6-e7ab-43e5-9baa-82731cf64f63',
+    'PED-0005',
+    'PREPARATION_COMPLETED',
+    1561,
+    'COUNTER',
+    'STANDARD',
+    24,
+    24,
+    '["PED-0020", "PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1381,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00075 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a287188f-4caa-4fe3-8eb6-e33eb4546e65',
+    'PED-0020',
+    'SERVICE_STARTED',
+    1561,
+    'DELIVERY',
+    'URGENT',
+    24,
+    23,
+    '["PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1561,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00076 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '8cba64d2-5696-4257-b778-58b733f0ab28',
+    'PED-0020',
+    'PREPARATION_COMPLETED',
+    1681,
+    'DELIVERY',
+    'URGENT',
+    23,
+    23,
+    '["PED-0023", "PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1561,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00077 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '6453aa9a-d11b-4227-b4ab-6c7faebc53a4',
+    'PED-0023',
+    'SERVICE_STARTED',
+    1681,
+    'DELIVERY',
+    'URGENT',
+    23,
+    22,
+    '["PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1681,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00078 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'c6d23376-8639-4553-bd66-b39f5542854e',
+    'PED-0023',
+    'PREPARATION_COMPLETED',
+    1801,
+    'DELIVERY',
+    'URGENT',
+    22,
+    22,
+    '["PED-0024", "PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1681,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00079 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'b5d91ac6-1f16-4867-9f4a-0d9a73a9b937',
+    'PED-0024',
+    'SERVICE_STARTED',
+    1801,
+    'DELIVERY',
+    'URGENT',
+    22,
+    21,
+    '["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1801,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00080 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '0fb835b0-3ee9-4ee9-b6f5-e961298b384a',
+    'PED-0024',
+    'PREPARATION_COMPLETED',
+    1981,
+    'DELIVERY',
+    'URGENT',
+    21,
+    21,
+    '["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0009", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1801,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00081 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '8658da6c-c310-431b-a50b-cc2724cb32f4',
+    'PED-0009',
+    'SERVICE_STARTED',
+    1981,
+    'COUNTER',
+    'STANDARD',
+    21,
+    20,
+    '["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1981,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00082 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '1fb37e77-22b1-40d7-a80a-7a682a1ae8d3',
+    'PED-0009',
+    'PREPARATION_COMPLETED',
+    2161,
+    'COUNTER',
+    'STANDARD',
+    20,
+    20,
+    '["PED-0025", "PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    1981,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00083 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'aa856a75-6e87-4b10-94b8-a82a75618c22',
+    'PED-0025',
+    'SERVICE_STARTED',
+    2161,
+    'DELIVERY',
+    'URGENT',
+    20,
+    19,
+    '["PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2161,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00084 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'fd1ba2a0-ed47-4502-b289-7c3f8e2307b1',
+    'PED-0025',
+    'PREPARATION_COMPLETED',
+    2341,
+    'DELIVERY',
+    'URGENT',
+    19,
+    19,
+    '["PED-0027", "PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2161,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00085 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '4fabeaf2-6971-4bc3-8919-9cdda0940f33',
+    'PED-0027',
+    'SERVICE_STARTED',
+    2341,
+    'DELIVERY',
+    'URGENT',
+    19,
+    18,
+    '["PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2341,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00086 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '72bea37c-a088-40df-8ede-de3f072f6737',
+    'PED-0027',
+    'PREPARATION_COMPLETED',
+    2521,
+    'DELIVERY',
+    'URGENT',
+    18,
+    18,
+    '["PED-0028", "PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2341,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00087 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '86cd1e16-f768-420e-81a5-e1ea894eae09',
+    'PED-0028',
+    'SERVICE_STARTED',
+    2521,
+    'DELIVERY',
+    'URGENT',
+    18,
+    17,
+    '["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2521,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00088 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a8910c2d-1b36-49b7-b6da-f204efbdd6d6',
+    'PED-0028',
+    'PREPARATION_COMPLETED',
+    2581,
+    'DELIVERY',
+    'URGENT',
+    17,
+    17,
+    '["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0011", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2521,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00089 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '0a3141b1-2024-44ee-8067-7cc074581459',
+    'PED-0011',
+    'SERVICE_STARTED',
+    2581,
+    'PICKUP',
+    'STANDARD',
+    17,
+    16,
+    '["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2581,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00090 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '52f28d4f-d00c-41d3-8cd3-52ea37d45db5',
+    'PED-0011',
+    'PREPARATION_COMPLETED',
+    2641,
+    'PICKUP',
+    'STANDARD',
+    16,
+    16,
+    '["PED-0030", "PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2581,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00091 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '462ec676-6c7b-4aa0-832d-55729274a87e',
+    'PED-0030',
+    'SERVICE_STARTED',
+    2641,
+    'DELIVERY',
+    'URGENT',
+    16,
+    15,
+    '["PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2641,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00092 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'f34c7ce0-a2e3-4cf3-a977-1d2d7c68be9e',
+    'PED-0030',
+    'PREPARATION_COMPLETED',
+    2701,
+    'DELIVERY',
+    'URGENT',
+    15,
+    15,
+    '["PED-0031", "PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2641,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00093 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '4c03bc15-0429-4f9d-9ccb-4e6eda2be290',
+    'PED-0031',
+    'SERVICE_STARTED',
+    2701,
+    'DELIVERY',
+    'URGENT',
+    15,
+    14,
+    '["PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2701,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00094 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'c9f91ea7-21ef-40ad-bd68-970d9b6318e9',
+    'PED-0031',
+    'PREPARATION_COMPLETED',
+    2821,
+    'DELIVERY',
+    'URGENT',
+    14,
+    14,
+    '["PED-0032", "PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2701,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00095 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'c9a5ef5d-d598-4531-995a-34cf33bc5e8e',
+    'PED-0032',
+    'SERVICE_STARTED',
+    2821,
+    'DELIVERY',
+    'URGENT',
+    14,
+    13,
+    '["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2821,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00096 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'dafa4bf3-9b35-40b7-9b2b-04aa13e97d19',
+    'PED-0032',
+    'PREPARATION_COMPLETED',
+    2941,
+    'DELIVERY',
+    'URGENT',
+    13,
+    13,
+    '["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0014", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2821,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00097 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '066c41f1-6b0e-460d-b461-5feacae44665',
+    'PED-0014',
+    'SERVICE_STARTED',
+    2941,
+    'COUNTER',
+    'STANDARD',
+    13,
+    12,
+    '["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2941,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00098 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '65d9acc1-6bb0-41b6-bf2e-5b9081823e09',
+    'PED-0014',
+    'PREPARATION_COMPLETED',
+    3121,
+    'COUNTER',
+    'STANDARD',
+    12,
+    12,
+    '["PED-0034", "PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    2941,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00099 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '042b2ef1-9003-4de4-a999-ab8690f0dfdf',
+    'PED-0034',
+    'SERVICE_STARTED',
+    3121,
+    'DELIVERY',
+    'URGENT',
+    12,
+    11,
+    '["PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3121,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00100 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '9b927980-6d00-41e4-8c1a-8a9db7e0bb79',
+    'PED-0034',
+    'PREPARATION_COMPLETED',
+    3241,
+    'DELIVERY',
+    'URGENT',
+    11,
+    11,
+    '["PED-0035", "PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3121,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00101 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'e572aa9b-9962-40cb-bd30-6517830d492c',
+    'PED-0035',
+    'SERVICE_STARTED',
+    3241,
+    'DELIVERY',
+    'URGENT',
+    11,
+    10,
+    '["PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3241,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00102 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '485e9894-d882-49f8-a622-33a0a09a401a',
+    'PED-0035',
+    'PREPARATION_COMPLETED',
+    3421,
+    'DELIVERY',
+    'URGENT',
+    10,
+    10,
+    '["PED-0036", "PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3241,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00103 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'd3e82442-a155-4f9b-9792-6946d3a758bc',
+    'PED-0036',
+    'SERVICE_STARTED',
+    3421,
+    'DELIVERY',
+    'URGENT',
+    10,
+    9,
+    '["PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3421,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00104 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'df87699a-7d33-463b-8a7f-8b0216a82197',
+    'PED-0036',
+    'PREPARATION_COMPLETED',
+    3601,
+    'DELIVERY',
+    'URGENT',
+    9,
+    9,
+    '["PED-0040", "PED-0021", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3421,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00105 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '394e717b-3f55-47a6-849c-117135fb5735',
+    'PED-0021',
+    'SERVICE_STARTED',
+    3601,
+    'PICKUP',
+    'STANDARD',
+    9,
+    8,
+    '["PED-0040", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3601,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00106 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '9659359c-767c-4521-86dc-7ab05867d47f',
+    'PED-0021',
+    'PREPARATION_COMPLETED',
+    3661,
+    'PICKUP',
+    'STANDARD',
+    8,
+    8,
+    '["PED-0040", "PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3601,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00107 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'ae2f92be-2baa-4c12-a716-04bfe3675355',
+    'PED-0040',
+    'SERVICE_STARTED',
+    3661,
+    'DELIVERY',
+    'URGENT',
+    8,
+    7,
+    '["PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3661,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00108 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '1ce36e70-d4fe-4830-8a7c-f40b929a760a',
+    'PED-0040',
+    'PREPARATION_COMPLETED',
+    3781,
+    'DELIVERY',
+    'URGENT',
+    7,
+    7,
+    '["PED-0022", "PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3661,
+    180,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00109 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a6db8140-7377-420b-a787-ab59b8bcece1',
+    'PED-0022',
+    'SERVICE_STARTED',
+    3781,
+    'PICKUP',
+    'STANDARD',
+    7,
+    6,
+    '["PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3781,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00110 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '2f33a8c7-df32-44fa-ab1a-c3eb505a140a',
+    'PED-0022',
+    'PREPARATION_COMPLETED',
+    3961,
+    'PICKUP',
+    'STANDARD',
+    6,
+    6,
+    '["PED-0026", "PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3781,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00111 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '7056e63a-b321-4e3c-966e-a1269f4b9a87',
+    'PED-0026',
+    'SERVICE_STARTED',
+    3961,
+    'PICKUP',
+    'STANDARD',
+    6,
+    5,
+    '["PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3961,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00112 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '77636ac0-58f8-4375-ad41-ef38d64db47f',
+    'PED-0026',
+    'PREPARATION_COMPLETED',
+    4141,
+    'PICKUP',
+    'STANDARD',
+    5,
+    5,
+    '["PED-0029", "PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    3961,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00113 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '88e13235-e49a-41f1-b781-70385fe2d2cb',
+    'PED-0029',
+    'SERVICE_STARTED',
+    4141,
+    'COUNTER',
+    'STANDARD',
+    5,
+    4,
+    '["PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    4141,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00114 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '2f6ef904-6c0e-4bc2-8153-bb30751ec453',
+    'PED-0029',
+    'PREPARATION_COMPLETED',
+    4261,
+    'COUNTER',
+    'STANDARD',
+    4,
+    4,
+    '["PED-0033", "PED-0037", "PED-0038", "PED-0039"]',
+    4141,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00115 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '0471843b-6cc4-4387-b623-a36832a674d2',
+    'PED-0033',
+    'SERVICE_STARTED',
+    4261,
+    'PICKUP',
+    'STANDARD',
+    4,
+    3,
+    '["PED-0037", "PED-0038", "PED-0039"]',
+    4261,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00116 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '66517f01-ba2c-4ca5-8bdf-5812e3361e3d',
+    'PED-0033',
+    'PREPARATION_COMPLETED',
+    4321,
+    'PICKUP',
+    'STANDARD',
+    3,
+    3,
+    '["PED-0037", "PED-0038", "PED-0039"]',
+    4261,
+    300,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00117 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '33e90390-d288-477b-9b44-82a3ced1b4c9',
+    'PED-0037',
+    'SERVICE_STARTED',
+    4321,
+    'COUNTER',
+    'STANDARD',
+    3,
+    2,
+    '["PED-0038", "PED-0039"]',
+    4321,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00118 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '687b3abc-1d35-4e82-b46c-f75abfcd40a6',
+    'PED-0037',
+    'PREPARATION_COMPLETED',
+    4501,
+    'COUNTER',
+    'STANDARD',
+    2,
+    2,
+    '["PED-0038", "PED-0039"]',
+    4321,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00119 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '780c6510-c02e-4116-ae16-28fa33f34f98',
+    'PED-0038',
+    'SERVICE_STARTED',
+    4501,
+    'COUNTER',
+    'STANDARD',
+    2,
+    1,
+    '["PED-0039"]',
+    4501,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00120 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    'a311b68e-016a-4112-91bc-57196278289d',
+    'PED-0038',
+    'PREPARATION_COMPLETED',
+    4681,
+    'COUNTER',
+    'STANDARD',
+    1,
+    1,
+    '["PED-0039"]',
+    4501,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00121 | evento de fila | SERVICE_STARTED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '2ffa0de3-f809-4002-be58-3e86836bdbda',
+    'PED-0039',
+    'SERVICE_STARTED',
+    4681,
+    'COUNTER',
+    'STANDARD',
+    1,
+    0,
+    '[]',
+    4681,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
+-- Registro de auditoria #00122 | evento de fila | PREPARATION_COMPLETED
+INSERT INTO queue_events (
+    event_id,
+    ticket_id,
+    event_type,
+    simulated_second,
+    channel,
+    priority,
+    queue_size_before,
+    queue_size_after,
+    queue_snapshot,
+    wait_seconds,
+    sla_target_seconds,
+    sla_status,
+    recorded_at
+) VALUES (
+    '65aae5a6-bc81-4c53-98b1-6a6130cdb4e4',
+    'PED-0039',
+    'PREPARATION_COMPLETED',
+    4741,
+    'COUNTER',
+    'STANDARD',
+    0,
+    0,
+    '[]',
+    4681,
+    480,
+    'BREACHED',
+    '2026-11-17 16:40:32'
+);
+
 COMMIT;

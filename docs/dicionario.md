@@ -151,7 +151,7 @@ Campos públicos: `dispatcher`, `queue`, `rules`, `audit_logger`; `current_time:
 - `init_session()`: cria banco exclusivo em data e guarda motor/controles no session_state.
 - `ticket_card(ticket, engine)`: renderiza espera, meta e risco com texto escapado, cor e barra visual.
 - `laboratory(engine)`: formulário de regras e controles de pausa, restante e cancelamento; chama serviços.
-- `history(engine)`: exportação completa, filtro de eventos e intervenções; não acessa conexão privada.
+- `history(engine)`: mostra uma trilha única com resumo por registro, filtros por tipo/operação/texto e detalhes selecionáveis de pedido, fila, SLA ou ação. Exporta SQL completo e JSON filtrado sem acessar conexão privada.
 - `dashboard(engine)`: relógio, indicadores, estação, faixas, previsão de próxima faixa e detalhes dos tickets.
 - `main()`: configura página, widgets, sessão e fragmento. Funções locais `enqueue()`/`reset_session()` admitem pedido e iniciam sessão nova; `live()` avança automaticamente e intercala chegadas.
 

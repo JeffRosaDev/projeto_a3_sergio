@@ -1,0 +1,6639 @@
+{
+  "formato": "kitchenflow.audit.v1",
+  "descricao": "Trilha de auditoria da simulação em ordem de registro.",
+  "legenda": {
+    "sequencia": "Ordem global em que evento ou ação foi gravado.",
+    "tipo_registro": "Distingue evento_de_fila de acao_de_simulacao.",
+    "segundo_simulado": "Instante do relógio interno da simulação, em segundos.",
+    "registrado_em_utc": "Horário real de gravação, em UTC.",
+    "pedidos_aguardando": "IDs na fila logo após o evento, na ordem de atendimento.",
+    "sla.espera_segundos": "Null enquanto o pedido ainda não iniciou atendimento.",
+    "sla.resultado": "Null quando o resultado de SLA ainda não se aplica.",
+    "detalhes": "Parâmetros específicos do comando ou da alteração registrados."
+  },
+  "filtros_aplicados": {},
+  "total_registros": 122,
+  "registros": [
+    {
+      "sequencia": 1,
+      "tipo_registro": "acao_de_simulacao",
+      "id_registro": "c899fc65041c4584815531f246193601",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "CONFIG_INITIAL",
+        "descricao": "Configuração inicial"
+      },
+      "detalhes": {
+        "sla": {
+          "DELIVERY": 180,
+          "PICKUP": 300,
+          "COUNTER": 480
+        },
+        "preparo": {
+          "SIMPLE": 60,
+          "MEDIUM": 120,
+          "COMPLEX": 180
+        },
+        "cota": 3,
+        "risco": 0.8,
+        "delivery_urgente": true
+      }
+    },
+    {
+      "sequencia": 2,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "881dcaef-e210-4aa3-ab12-a6ba6f4b53ee",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0001",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 0,
+        "tamanho_depois": 1,
+        "pedidos_aguardando": [
+          "PED-0001"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 3,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "dfedf35b-137a-4f2b-8b4e-193be0cc6c6c",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0002",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 1,
+        "tamanho_depois": 2,
+        "pedidos_aguardando": [
+          "PED-0001",
+          "PED-0002"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 300,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 4,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "5139dcc6-8faa-4da2-b099-a6b80fc91a61",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0003",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 2,
+        "tamanho_depois": 3,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0001",
+          "PED-0002"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 5,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "e84b33fa-242d-4a3a-b064-bc567c9a983f",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0004",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 3,
+        "tamanho_depois": 4,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 6,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "27d9f93b-a7d2-43d1-b8d7-cc3736b1f17e",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0005",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 4,
+        "tamanho_depois": 5,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 7,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "bf714ad5-4906-4081-8621-12b942a07655",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0006",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 5,
+        "tamanho_depois": 6,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 8,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "e442ecbd-649b-4930-a05d-80237377254c",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0007",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 6,
+        "tamanho_depois": 7,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 9,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "baf53e51-cd65-4214-be9b-58bfbecd07d0",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0008",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 7,
+        "tamanho_depois": 8,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 10,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "54a7f63b-7cae-4f01-a926-92d0cb95585e",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0009",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 8,
+        "tamanho_depois": 9,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 11,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "bd6146f2-d540-441f-b3f1-2cdc21a95953",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0010",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 9,
+        "tamanho_depois": 10,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 12,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "17d05d29-b06a-4ef2-9b79-bf6e00e7ee9b",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0011",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 10,
+        "tamanho_depois": 11,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 300,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 13,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "526ecff9-3d08-4835-9efe-901b773bc27e",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0012",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 11,
+        "tamanho_depois": 12,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 14,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "db5e6b93-da74-46e2-9510-143cba869c14",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0013",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 12,
+        "tamanho_depois": 13,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 15,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "93e3d576-e53f-4087-b168-4be774c2dc57",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0014",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 13,
+        "tamanho_depois": 14,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 16,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "0f68eba1-7a64-4d29-a9aa-295981efdd24",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0015",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 14,
+        "tamanho_depois": 15,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 17,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "00ee94f9-f063-4f93-abbd-f80a904acd31",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0016",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 15,
+        "tamanho_depois": 16,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 18,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "e15ae9d0-775f-4931-a59d-db9d2d2d20e6",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0017",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 16,
+        "tamanho_depois": 17,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 19,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "ec5b8edc-e67b-4a55-a840-e577bd9c73cc",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0018",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 17,
+        "tamanho_depois": 18,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 20,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "969a8099-7227-4dbc-8690-3b92585d1b35",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0019",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 18,
+        "tamanho_depois": 19,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 21,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "57a3eb1d-1670-4bcb-a12f-c0153cbb5ac8",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0020",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 19,
+        "tamanho_depois": 20,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 22,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "6af7627f-beed-40b5-8d5e-f9be865ff3b7",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0021",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 20,
+        "tamanho_depois": 21,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 300,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 23,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "e3c17f38-5bf8-47fe-ae1d-b5eb10c3e8e5",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0022",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 21,
+        "tamanho_depois": 22,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 300,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 24,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a8ae3e26-d789-4982-81e6-913c4f0e9922",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0023",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 22,
+        "tamanho_depois": 23,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 25,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "837f994b-d9ca-4938-b4d0-93dba3ed6251",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0024",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 23,
+        "tamanho_depois": 24,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 26,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "5bd7f078-a6d8-4739-815c-89f92edd58cd",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0025",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 24,
+        "tamanho_depois": 25,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 27,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "8c3591f8-3f8c-4d7e-8cc4-9baaa3d87066",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0026",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 25,
+        "tamanho_depois": 26,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 300,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 28,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "7d51faf4-83ac-46d9-92e0-4e0e03705223",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0027",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 26,
+        "tamanho_depois": 27,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 29,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "9469a2cb-c9fd-4dd4-b0a6-3e5951f5c8b4",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0028",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 27,
+        "tamanho_depois": 28,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 30,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "60efc53c-65bc-4df6-98ae-5ae0fe77a11b",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0029",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 28,
+        "tamanho_depois": 29,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 31,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "698b5ba8-f7fb-45d0-9ece-2e3c45690453",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0030",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 29,
+        "tamanho_depois": 30,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 32,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "bf58bc1a-984d-48af-81ce-aac50b326171",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0031",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 30,
+        "tamanho_depois": 31,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 33,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "f4f88d1f-baca-44e4-8fe7-f90e2c8de7fb",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0032",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 31,
+        "tamanho_depois": 32,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 34,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "4f296e06-7391-4e11-a522-7ef6de817eb0",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0033",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 32,
+        "tamanho_depois": 33,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 300,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 35,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "9194ca35-7749-4ca8-959d-d488b2fd81e5",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0034",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 33,
+        "tamanho_depois": 34,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 36,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "ccf21bc0-a6a9-42bc-8b27-76bc3af3390e",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0035",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 34,
+        "tamanho_depois": 35,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 37,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "eb60957e-d300-4cf3-a590-c93f0ee2dad3",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0036",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 35,
+        "tamanho_depois": 36,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 38,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "cd2bfb5f-fd6a-47e6-abed-fd85993f90e1",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0037",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 36,
+        "tamanho_depois": 37,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 39,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "6fce2542-7955-4ce6-9a4b-c8c3b3ce05a0",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0038",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 37,
+        "tamanho_depois": 38,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 40,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "11723f6c-c3ee-4c75-a385-e5d69cd0c40b",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0039",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 38,
+        "tamanho_depois": 39,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 480,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 41,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "fa1fce51-460a-474b-8197-a0fb56e4bdc3",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "ENQUEUED",
+        "descricao": "Pedido entrou na fila"
+      },
+      "pedido": {
+        "id": "PED-0040",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 39,
+        "tamanho_depois": 40,
+        "pedidos_aguardando": [
+          "PED-0003",
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": null,
+        "meta_segundos": 180,
+        "resultado": null
+      }
+    },
+    {
+      "sequencia": 42,
+      "tipo_registro": "acao_de_simulacao",
+      "id_registro": "02faf71b370d4d69bd62947fbae0efc6",
+      "segundo_simulado": 0,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "BURST",
+        "descricao": "Lote de pedidos criado"
+      },
+      "detalhes": {
+        "count": 40,
+        "seed": 42,
+        "urgent_percent": 60,
+        "scenario": "Aleatório"
+      }
+    },
+    {
+      "sequencia": 43,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "8c6104fe-a1fe-470d-9463-31a9827116cc",
+      "segundo_simulado": 1,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0003",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 40,
+        "tamanho_depois": 39,
+        "pedidos_aguardando": [
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 44,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "792ca58c-af63-4f4d-ae85-c85a8d540a79",
+      "segundo_simulado": 61,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0003",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 39,
+        "tamanho_depois": 39,
+        "pedidos_aguardando": [
+          "PED-0006",
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 45,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "4677c4ba-3ae9-4ab6-b41b-e67515dab544",
+      "segundo_simulado": 61,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0006",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 39,
+        "tamanho_depois": 38,
+        "pedidos_aguardando": [
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 61,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 46,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "d64da48d-720f-4f27-89c3-1129ed85bb48",
+      "segundo_simulado": 121,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0006",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 38,
+        "tamanho_depois": 38,
+        "pedidos_aguardando": [
+          "PED-0007",
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 61,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 47,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "46a97950-5694-49bf-9c02-8c3772cf5e8a",
+      "segundo_simulado": 121,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0007",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 38,
+        "tamanho_depois": 37,
+        "pedidos_aguardando": [
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 121,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 48,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "65aa468b-cf80-47c4-8d25-8e295907790b",
+      "segundo_simulado": 181,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0007",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 37,
+        "tamanho_depois": 37,
+        "pedidos_aguardando": [
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0001",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 121,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 49,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "338b7a03-f69d-4423-9b7f-122481ce5f4d",
+      "segundo_simulado": 181,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0001",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 37,
+        "tamanho_depois": 36,
+        "pedidos_aguardando": [
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 181,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 50,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "4db2b8b3-5137-4ce8-9c0e-ccf00fbd8861",
+      "segundo_simulado": 241,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0001",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 36,
+        "tamanho_depois": 36,
+        "pedidos_aguardando": [
+          "PED-0008",
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 181,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "MET",
+          "descricao": "Dentro da meta"
+        }
+      }
+    },
+    {
+      "sequencia": 51,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "6baa713a-2d36-42af-8388-0a1be8f64133",
+      "segundo_simulado": 241,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0008",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 36,
+        "tamanho_depois": 35,
+        "pedidos_aguardando": [
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 241,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 52,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "212b7b04-1745-40aa-86d4-ac27b85d592d",
+      "segundo_simulado": 301,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0008",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 35,
+        "tamanho_depois": 35,
+        "pedidos_aguardando": [
+          "PED-0010",
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 241,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 53,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "aca94ccb-b93d-4abd-988b-1a1995109ca2",
+      "segundo_simulado": 301,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0010",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 35,
+        "tamanho_depois": 34,
+        "pedidos_aguardando": [
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 301,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 54,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "fd37ce4c-b0d9-4d5b-8560-579fa04fd233",
+      "segundo_simulado": 481,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0010",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 34,
+        "tamanho_depois": 34,
+        "pedidos_aguardando": [
+          "PED-0012",
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 301,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 55,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "8fe2aa4e-e850-48be-8ae7-c81ba5c183b7",
+      "segundo_simulado": 481,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0012",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 34,
+        "tamanho_depois": 33,
+        "pedidos_aguardando": [
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 481,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 56,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "ea591b87-359e-48b9-9aa8-d08334376dda",
+      "segundo_simulado": 661,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0012",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 33,
+        "tamanho_depois": 33,
+        "pedidos_aguardando": [
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0002",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 481,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 57,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "87d86f0f-b893-419e-9220-5145e6f07fa0",
+      "segundo_simulado": 661,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0002",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 33,
+        "tamanho_depois": 32,
+        "pedidos_aguardando": [
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 661,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 58,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "4580888d-cc14-4fa9-8bfa-2511e342caae",
+      "segundo_simulado": 721,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0002",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 32,
+        "tamanho_depois": 32,
+        "pedidos_aguardando": [
+          "PED-0013",
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 661,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 59,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "11b772c3-ce61-4a36-869b-eedb8093a0fb",
+      "segundo_simulado": 721,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0013",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 32,
+        "tamanho_depois": 31,
+        "pedidos_aguardando": [
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 721,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 60,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "c4b0b486-e10f-4dbb-a5c5-5123fb1c7e0a",
+      "segundo_simulado": 781,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0013",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 31,
+        "tamanho_depois": 31,
+        "pedidos_aguardando": [
+          "PED-0015",
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 721,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 61,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a9f5e863-1bec-46b4-9d88-004d256ff38c",
+      "segundo_simulado": 781,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0015",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 31,
+        "tamanho_depois": 30,
+        "pedidos_aguardando": [
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 781,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 62,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "cc1bb446-a463-4fca-abde-5384c32726c6",
+      "segundo_simulado": 901,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0015",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 30,
+        "tamanho_depois": 30,
+        "pedidos_aguardando": [
+          "PED-0016",
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 781,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 63,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "af210be4-04d1-4ab7-8e4e-b86779fa77e5",
+      "segundo_simulado": 901,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0016",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 30,
+        "tamanho_depois": 29,
+        "pedidos_aguardando": [
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 901,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 64,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "7c67194c-5f7b-4b93-ac5c-26a2ad279d8c",
+      "segundo_simulado": 961,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0016",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 29,
+        "tamanho_depois": 29,
+        "pedidos_aguardando": [
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0004",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 901,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 65,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "febdb921-2f24-45f8-a77f-fa2b3aab855f",
+      "segundo_simulado": 961,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0004",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 29,
+        "tamanho_depois": 28,
+        "pedidos_aguardando": [
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 961,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 66,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "308456f3-164f-41fe-b803-ae4be786788e",
+      "segundo_simulado": 1141,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0004",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 28,
+        "tamanho_depois": 28,
+        "pedidos_aguardando": [
+          "PED-0017",
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 961,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 67,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "92764ac2-f065-4486-9ff5-9e59ea42eb40",
+      "segundo_simulado": 1141,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0017",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 28,
+        "tamanho_depois": 27,
+        "pedidos_aguardando": [
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1141,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 68,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "d83cf83b-84aa-4d4c-90f1-8dce030355f8",
+      "segundo_simulado": 1261,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0017",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 27,
+        "tamanho_depois": 27,
+        "pedidos_aguardando": [
+          "PED-0018",
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1141,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 69,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "0f65e377-478d-46b6-b1d2-d416ae2ad0b4",
+      "segundo_simulado": 1261,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0018",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 27,
+        "tamanho_depois": 26,
+        "pedidos_aguardando": [
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1261,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 70,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "19021b7d-ec76-486f-8c4a-fd1e8c1d7bcb",
+      "segundo_simulado": 1321,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0018",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 26,
+        "tamanho_depois": 26,
+        "pedidos_aguardando": [
+          "PED-0019",
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1261,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 71,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "d4040ea2-3db7-446e-95ad-aa91b07227c0",
+      "segundo_simulado": 1321,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0019",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 26,
+        "tamanho_depois": 25,
+        "pedidos_aguardando": [
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1321,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 72,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "fdece181-c2cd-44fe-bbd4-00f2bdc0206f",
+      "segundo_simulado": 1381,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0019",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 25,
+        "tamanho_depois": 25,
+        "pedidos_aguardando": [
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0005",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1321,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 73,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a4fc7e66-f6ed-4d80-bdb5-3c953f62f031",
+      "segundo_simulado": 1381,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0005",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 25,
+        "tamanho_depois": 24,
+        "pedidos_aguardando": [
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1381,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 74,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "3a8f19e6-e7ab-43e5-9baa-82731cf64f63",
+      "segundo_simulado": 1561,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0005",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 24,
+        "tamanho_depois": 24,
+        "pedidos_aguardando": [
+          "PED-0020",
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1381,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 75,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a287188f-4caa-4fe3-8eb6-e33eb4546e65",
+      "segundo_simulado": 1561,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0020",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 24,
+        "tamanho_depois": 23,
+        "pedidos_aguardando": [
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1561,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 76,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "8cba64d2-5696-4257-b778-58b733f0ab28",
+      "segundo_simulado": 1681,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0020",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 23,
+        "tamanho_depois": 23,
+        "pedidos_aguardando": [
+          "PED-0023",
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1561,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 77,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "6453aa9a-d11b-4227-b4ab-6c7faebc53a4",
+      "segundo_simulado": 1681,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0023",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 23,
+        "tamanho_depois": 22,
+        "pedidos_aguardando": [
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1681,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 78,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "c6d23376-8639-4553-bd66-b39f5542854e",
+      "segundo_simulado": 1801,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0023",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 22,
+        "tamanho_depois": 22,
+        "pedidos_aguardando": [
+          "PED-0024",
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1681,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 79,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "b5d91ac6-1f16-4867-9f4a-0d9a73a9b937",
+      "segundo_simulado": 1801,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0024",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 22,
+        "tamanho_depois": 21,
+        "pedidos_aguardando": [
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1801,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 80,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "0fb835b0-3ee9-4ee9-b6f5-e961298b384a",
+      "segundo_simulado": 1981,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0024",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 21,
+        "tamanho_depois": 21,
+        "pedidos_aguardando": [
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0009",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1801,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 81,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "8658da6c-c310-431b-a50b-cc2724cb32f4",
+      "segundo_simulado": 1981,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0009",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 21,
+        "tamanho_depois": 20,
+        "pedidos_aguardando": [
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1981,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 82,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "1fb37e77-22b1-40d7-a80a-7a682a1ae8d3",
+      "segundo_simulado": 2161,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0009",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 20,
+        "tamanho_depois": 20,
+        "pedidos_aguardando": [
+          "PED-0025",
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 1981,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 83,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "aa856a75-6e87-4b10-94b8-a82a75618c22",
+      "segundo_simulado": 2161,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0025",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 20,
+        "tamanho_depois": 19,
+        "pedidos_aguardando": [
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2161,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 84,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "fd1ba2a0-ed47-4502-b289-7c3f8e2307b1",
+      "segundo_simulado": 2341,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0025",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 19,
+        "tamanho_depois": 19,
+        "pedidos_aguardando": [
+          "PED-0027",
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2161,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 85,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "4fabeaf2-6971-4bc3-8919-9cdda0940f33",
+      "segundo_simulado": 2341,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0027",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 19,
+        "tamanho_depois": 18,
+        "pedidos_aguardando": [
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2341,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 86,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "72bea37c-a088-40df-8ede-de3f072f6737",
+      "segundo_simulado": 2521,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0027",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 18,
+        "tamanho_depois": 18,
+        "pedidos_aguardando": [
+          "PED-0028",
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2341,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 87,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "86cd1e16-f768-420e-81a5-e1ea894eae09",
+      "segundo_simulado": 2521,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0028",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 18,
+        "tamanho_depois": 17,
+        "pedidos_aguardando": [
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2521,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 88,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a8910c2d-1b36-49b7-b6da-f204efbdd6d6",
+      "segundo_simulado": 2581,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0028",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 17,
+        "tamanho_depois": 17,
+        "pedidos_aguardando": [
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0011",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2521,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 89,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "0a3141b1-2024-44ee-8067-7cc074581459",
+      "segundo_simulado": 2581,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0011",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 17,
+        "tamanho_depois": 16,
+        "pedidos_aguardando": [
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2581,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 90,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "52f28d4f-d00c-41d3-8cd3-52ea37d45db5",
+      "segundo_simulado": 2641,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0011",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 16,
+        "tamanho_depois": 16,
+        "pedidos_aguardando": [
+          "PED-0030",
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2581,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 91,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "462ec676-6c7b-4aa0-832d-55729274a87e",
+      "segundo_simulado": 2641,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0030",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 16,
+        "tamanho_depois": 15,
+        "pedidos_aguardando": [
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2641,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 92,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "f34c7ce0-a2e3-4cf3-a977-1d2d7c68be9e",
+      "segundo_simulado": 2701,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0030",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 15,
+        "tamanho_depois": 15,
+        "pedidos_aguardando": [
+          "PED-0031",
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2641,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 93,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "4c03bc15-0429-4f9d-9ccb-4e6eda2be290",
+      "segundo_simulado": 2701,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0031",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 15,
+        "tamanho_depois": 14,
+        "pedidos_aguardando": [
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2701,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 94,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "c9f91ea7-21ef-40ad-bd68-970d9b6318e9",
+      "segundo_simulado": 2821,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0031",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 14,
+        "tamanho_depois": 14,
+        "pedidos_aguardando": [
+          "PED-0032",
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2701,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 95,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "c9a5ef5d-d598-4531-995a-34cf33bc5e8e",
+      "segundo_simulado": 2821,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0032",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 14,
+        "tamanho_depois": 13,
+        "pedidos_aguardando": [
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2821,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 96,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "dafa4bf3-9b35-40b7-9b2b-04aa13e97d19",
+      "segundo_simulado": 2941,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0032",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 13,
+        "tamanho_depois": 13,
+        "pedidos_aguardando": [
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0014",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2821,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 97,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "066c41f1-6b0e-460d-b461-5feacae44665",
+      "segundo_simulado": 2941,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0014",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 13,
+        "tamanho_depois": 12,
+        "pedidos_aguardando": [
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2941,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 98,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "65d9acc1-6bb0-41b6-bf2e-5b9081823e09",
+      "segundo_simulado": 3121,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0014",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 12,
+        "tamanho_depois": 12,
+        "pedidos_aguardando": [
+          "PED-0034",
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 2941,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 99,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "042b2ef1-9003-4de4-a999-ab8690f0dfdf",
+      "segundo_simulado": 3121,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0034",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 12,
+        "tamanho_depois": 11,
+        "pedidos_aguardando": [
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3121,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 100,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "9b927980-6d00-41e4-8c1a-8a9db7e0bb79",
+      "segundo_simulado": 3241,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0034",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 11,
+        "tamanho_depois": 11,
+        "pedidos_aguardando": [
+          "PED-0035",
+          "PED-0036",
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3121,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 101,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "e572aa9b-9962-40cb-bd30-6517830d492c",
+      "segundo_simulado": 3241,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0035",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 11,
+        "tamanho_depois": 10,
+        "pedidos_aguardando": [
+          "PED-0036",
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3241,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 102,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "485e9894-d882-49f8-a622-33a0a09a401a",
+      "segundo_simulado": 3421,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0035",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 10,
+        "tamanho_depois": 10,
+        "pedidos_aguardando": [
+          "PED-0036",
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3241,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 103,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "d3e82442-a155-4f9b-9792-6946d3a758bc",
+      "segundo_simulado": 3421,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0036",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 10,
+        "tamanho_depois": 9,
+        "pedidos_aguardando": [
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3421,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 104,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "df87699a-7d33-463b-8a7f-8b0216a82197",
+      "segundo_simulado": 3601,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0036",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 9,
+        "tamanho_depois": 9,
+        "pedidos_aguardando": [
+          "PED-0040",
+          "PED-0021",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3421,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 105,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "394e717b-3f55-47a6-849c-117135fb5735",
+      "segundo_simulado": 3601,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0021",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 9,
+        "tamanho_depois": 8,
+        "pedidos_aguardando": [
+          "PED-0040",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3601,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 106,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "9659359c-767c-4521-86dc-7ab05867d47f",
+      "segundo_simulado": 3661,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0021",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 8,
+        "tamanho_depois": 8,
+        "pedidos_aguardando": [
+          "PED-0040",
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3601,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 107,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "ae2f92be-2baa-4c12-a716-04bfe3675355",
+      "segundo_simulado": 3661,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0040",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 8,
+        "tamanho_depois": 7,
+        "pedidos_aguardando": [
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3661,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 108,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "1ce36e70-d4fe-4830-8a7c-f40b929a760a",
+      "segundo_simulado": 3781,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0040",
+        "canal": {
+          "codigo": "DELIVERY",
+          "descricao": "Entrega"
+        },
+        "prioridade": {
+          "codigo": "URGENT",
+          "descricao": "Urgente"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 7,
+        "tamanho_depois": 7,
+        "pedidos_aguardando": [
+          "PED-0022",
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3661,
+        "meta_segundos": 180,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 109,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a6db8140-7377-420b-a787-ab59b8bcece1",
+      "segundo_simulado": 3781,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0022",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 7,
+        "tamanho_depois": 6,
+        "pedidos_aguardando": [
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3781,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 110,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "2f33a8c7-df32-44fa-ab1a-c3eb505a140a",
+      "segundo_simulado": 3961,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0022",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 6,
+        "tamanho_depois": 6,
+        "pedidos_aguardando": [
+          "PED-0026",
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3781,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 111,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "7056e63a-b321-4e3c-966e-a1269f4b9a87",
+      "segundo_simulado": 3961,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0026",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 6,
+        "tamanho_depois": 5,
+        "pedidos_aguardando": [
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3961,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 112,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "77636ac0-58f8-4375-ad41-ef38d64db47f",
+      "segundo_simulado": 4141,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0026",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 5,
+        "tamanho_depois": 5,
+        "pedidos_aguardando": [
+          "PED-0029",
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 3961,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 113,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "88e13235-e49a-41f1-b781-70385fe2d2cb",
+      "segundo_simulado": 4141,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0029",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 5,
+        "tamanho_depois": 4,
+        "pedidos_aguardando": [
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4141,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 114,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "2f6ef904-6c0e-4bc2-8153-bb30751ec453",
+      "segundo_simulado": 4261,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0029",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 4,
+        "tamanho_depois": 4,
+        "pedidos_aguardando": [
+          "PED-0033",
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4141,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 115,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "0471843b-6cc4-4387-b623-a36832a674d2",
+      "segundo_simulado": 4261,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0033",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 4,
+        "tamanho_depois": 3,
+        "pedidos_aguardando": [
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4261,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 116,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "66517f01-ba2c-4ca5-8bdf-5812e3361e3d",
+      "segundo_simulado": 4321,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0033",
+        "canal": {
+          "codigo": "PICKUP",
+          "descricao": "Retirada"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 3,
+        "tamanho_depois": 3,
+        "pedidos_aguardando": [
+          "PED-0037",
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4261,
+        "meta_segundos": 300,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 117,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "33e90390-d288-477b-9b44-82a3ced1b4c9",
+      "segundo_simulado": 4321,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0037",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 3,
+        "tamanho_depois": 2,
+        "pedidos_aguardando": [
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4321,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 118,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "687b3abc-1d35-4e82-b46c-f75abfcd40a6",
+      "segundo_simulado": 4501,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0037",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 2,
+        "tamanho_depois": 2,
+        "pedidos_aguardando": [
+          "PED-0038",
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4321,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 119,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "780c6510-c02e-4116-ae16-28fa33f34f98",
+      "segundo_simulado": 4501,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0038",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 2,
+        "tamanho_depois": 1,
+        "pedidos_aguardando": [
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4501,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 120,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "a311b68e-016a-4112-91bc-57196278289d",
+      "segundo_simulado": 4681,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0038",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 1,
+        "tamanho_depois": 1,
+        "pedidos_aguardando": [
+          "PED-0039"
+        ]
+      },
+      "sla": {
+        "espera_segundos": 4501,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 121,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "2ffa0de3-f809-4002-be58-3e86836bdbda",
+      "segundo_simulado": 4681,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "SERVICE_STARTED",
+        "descricao": "Preparo iniciado"
+      },
+      "pedido": {
+        "id": "PED-0039",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 1,
+        "tamanho_depois": 0,
+        "pedidos_aguardando": []
+      },
+      "sla": {
+        "espera_segundos": 4681,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    },
+    {
+      "sequencia": 122,
+      "tipo_registro": "evento_de_fila",
+      "id_registro": "65aae5a6-bc81-4c53-98b1-6a6130cdb4e4",
+      "segundo_simulado": 4741,
+      "registrado_em_utc": "2026-11-17 16:40:32",
+      "operacao": {
+        "codigo": "PREPARATION_COMPLETED",
+        "descricao": "Preparo concluído"
+      },
+      "pedido": {
+        "id": "PED-0039",
+        "canal": {
+          "codigo": "COUNTER",
+          "descricao": "Balcão"
+        },
+        "prioridade": {
+          "codigo": "STANDARD",
+          "descricao": "Padrão"
+        }
+      },
+      "fila": {
+        "tamanho_antes": 0,
+        "tamanho_depois": 0,
+        "pedidos_aguardando": []
+      },
+      "sla": {
+        "espera_segundos": 4681,
+        "meta_segundos": 480,
+        "resultado": {
+          "codigo": "BREACHED",
+          "descricao": "Meta excedida"
+        }
+      }
+    }
+  ]
+}
